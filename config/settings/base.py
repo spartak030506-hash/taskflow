@@ -30,7 +30,10 @@ INSTALLED_APPS = [
     'drf_spectacular',                          # OpenAPI документация
     'channels',                                 # WebSocket
     # Local
+    'apps.users',
 ]
+
+AUTH_USER_MODEL = 'users.User'
 
 # Middleware
 MIDDLEWARE = [
@@ -175,3 +178,6 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@taskflow.loca
 # CORS (разрешённые origins для фронтенда)
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
 CORS_ALLOW_CREDENTIALS = True
+
+# Frontend URL (для ссылок в email)
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
