@@ -2,7 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 
-from core.exceptions import ValidationError, ConflictError
+from core.exceptions import ValidationError, ConflictError, NotFoundError
 
 from . import selectors
 from .models import User, EmailVerificationToken, PasswordResetToken
@@ -136,7 +136,7 @@ def request_password_reset(*, email: str) -> None:
 
     try:
         user = selectors.get_by_email(email)
-    except Exception:
+    except NotFoundError:
         return
 
     if not user.is_active:
