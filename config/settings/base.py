@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'channels',                                 # WebSocket
     # Local
     'apps.users',
+    'apps.projects',
 ]
 
 AUTH_USER_MODEL = 'users.User'

@@ -52,14 +52,7 @@ taskflow-drf/
 │   ├── urls.py
 │   └── asgi.py
 ├── apps/                   # Django-приложения
-│   ├── users/
-│   ├── projects/
-│   ├── tasks/
-│   ├── tags/
-│   ├── comments/
-│   ├── attachments/
-│   ├── notifications/
-│   └── activity/
+│   └── users/              # ✅ Реализовано
 ├── core/                   # Общий код
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
@@ -68,6 +61,20 @@ taskflow-drf/
 ├── docker-compose.yml
 ├── pyproject.toml
 └── manage.py
+```
+
+### Планируемые приложения
+
+```
+apps/
+├── users/           ✅ Реализовано
+├── projects/        📋 Планируется
+├── tasks/           📋 Планируется
+├── tags/            📋 Планируется
+├── comments/        📋 Планируется
+├── attachments/     📋 Планируется
+├── notifications/   📋 Планируется
+└── activity/        📋 Планируется
 ```
 
 ### Структура приложения
@@ -122,7 +129,7 @@ pip install -e ".[dev]"
 - `@transaction.atomic` для всех операций записи в сервисах
 - `transaction.on_commit()` для Celery задач внутри транзакции
 - `select_related`/`prefetch_related` в каждом селекторе
-- `update_fields` при `save()` **включая `updated_at`**
+- `update_fields` при `save()` (включая `updated_at` если модель наследует `TimestampMixin`)
 - Явный `on_delete` для всех ForeignKey
 - Исключения вместо `None` в селекторах
 - `select_for_update()` для конкурентного доступа к данным
@@ -142,6 +149,58 @@ pip install -e ".[dev]"
 |------|------------------|
 | Selector | `get_` (один объект), `filter_` (QuerySet), `exists_`, `count_` |
 | Service | Глаголы: `create_`, `update_`, `delete_`, `cancel_`, `publish_` |
+
+## Использование исключений
+
+Кастомные исключения из `core/exceptions.py` автоматически обрабатываются в `core/exception_handler.py`:
+
+```python
+from core.exceptions import NotFoundError, ValidationError, ConflictError
+
+# В селекторах — бросать NotFoundError вместо возврата None
+def get_by_id(user_id: int) -> User:
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        raise NotFoundError('Пользователь не найден')
+
+# В сервисах — ValidationError для бизнес-ошибок, ConflictError для дубликатов
+def register_user(email: str) -> User:
+    if selectors.exists_email(email):
+        raise ConflictError('Пользователь с таким email уже существует')
+```
+
+| Исключение | HTTP код | Когда использовать |
+|------------|----------|-------------------|
+| `NotFoundError` | 404 | Объект не найден |
+| `ValidationError` | 400 | Бизнес-валидация не пройдена |
+| `ConflictError` | 409 | Дубликат, конфликт данных |
+| `PermissionDeniedError` | 403 | Нет прав доступа |
+
+## Реализованные приложения
+
+### apps/users
+
+Кастомная модель пользователя с JWT аутентификацией, верификацией email и сбросом пароля.
+
+**Модели:** `User`, `EmailVerificationToken`, `PasswordResetToken`
+
+**API Endpoints:**
+
+| Метод | URL | Описание | Auth |
+|-------|-----|----------|------|
+| POST | `/api/v1/auth/register/` | Регистрация | — |
+| POST | `/api/v1/auth/token/` | Получение JWT (login) | — |
+| POST | `/api/v1/auth/token/refresh/` | Обновление access токена | — |
+| POST | `/api/v1/auth/verify-email/` | Подтверждение email | — |
+| POST | `/api/v1/auth/resend-verification/` | Повторная отправка | JWT |
+| POST | `/api/v1/auth/password-reset/` | Запрос сброса пароля | — |
+| POST | `/api/v1/auth/password-reset/confirm/` | Подтверждение сброса | — |
+| GET | `/api/v1/users/` | Список пользователей | Admin |
+| GET | `/api/v1/users/{id}/` | Профиль пользователя | JWT+Owner |
+| PATCH | `/api/v1/users/{id}/` | Обновление профиля | JWT+Owner |
+| GET | `/api/v1/users/me/` | Текущий пользователь | JWT |
+| POST | `/api/v1/users/me/change-password/` | Смена пароля | JWT |
 
 ## Документация по слоям
 
