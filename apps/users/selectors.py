@@ -27,13 +27,6 @@ def exists_email(email: str) -> bool:
     return User.objects.filter(email=email).exists()
 
 
-def get_by_id_for_update(user_id: int) -> User:
-    try:
-        return User.objects.select_for_update().get(id=user_id)
-    except User.DoesNotExist:
-        raise NotFoundError('Пользователь не найден')
-
-
 def get_verification_token(token: str) -> EmailVerificationToken:
     try:
         return EmailVerificationToken.objects.select_related('user').get(token=token)
