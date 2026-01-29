@@ -11,7 +11,7 @@ def get_by_id(task_id: int) -> Task:
     try:
         return Task.objects.select_related(
             'project', 'creator', 'assignee'
-        ).get(id=task_id)
+        ).prefetch_related('tags').get(id=task_id)
     except Task.DoesNotExist:
         raise NotFoundError('Задача не найдена')
 
@@ -20,7 +20,7 @@ def get_by_id_for_update(task_id: int) -> Task:
     try:
         return Task.objects.select_for_update().select_related(
             'project', 'creator', 'assignee'
-        ).get(id=task_id)
+        ).prefetch_related('tags').get(id=task_id)
     except Task.DoesNotExist:
         raise NotFoundError('Задача не найдена')
 
@@ -28,7 +28,7 @@ def get_by_id_for_update(task_id: int) -> Task:
 def filter_by_project(project: Project) -> QuerySet[Task]:
     return Task.objects.filter(
         project=project
-    ).select_related('creator', 'assignee')
+    ).select_related('creator', 'assignee').prefetch_related('tags')
 
 
 def filter_by_project_with_filters(
@@ -52,7 +52,7 @@ def filter_by_project_with_filters(
 def filter_assigned_to_user(user: User) -> QuerySet[Task]:
     return Task.objects.filter(
         assignee=user
-    ).select_related('project', 'creator')
+    ).select_related('project', 'creator').prefetch_related('tags')
 
 
 def exists_task_in_project(project: Project, task_id: int) -> bool:

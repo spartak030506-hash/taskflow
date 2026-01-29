@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.projects import selectors as project_selectors
+from apps.tags import services as tag_services
 from apps.users import selectors as user_selectors
 
 from . import selectors, services
@@ -15,6 +16,7 @@ from .serializers import (
     TaskDetailSerializer,
     TaskListSerializer,
     TaskReorderSerializer,
+    TaskSetTagsSerializer,
     TaskStatusSerializer,
     TaskUpdateSerializer,
 )
@@ -35,7 +37,7 @@ class TaskViewSet(viewsets.GenericViewSet):
             return [IsAuthenticated(), CanViewTask(), CanEditTask()]
         if self.action == 'destroy':
             return [IsAuthenticated(), CanViewTask(), CanDeleteTask()]
-        if self.action in ['change_status', 'assign', 'reorder']:
+        if self.action in ['change_status', 'assign', 'reorder', 'set_tags']:
             return [IsAuthenticated(), CanViewTask(), CanEditTask()]
         return [IsAuthenticated()]
 
@@ -52,6 +54,8 @@ class TaskViewSet(viewsets.GenericViewSet):
             return TaskAssignSerializer
         if self.action == 'reorder':
             return TaskReorderSerializer
+        if self.action == 'set_tags':
+            return TaskSetTagsSerializer
         return TaskDetailSerializer
 
     def get_project(self):
@@ -193,6 +197,19 @@ class TaskViewSet(viewsets.GenericViewSet):
         services.reorder_task(
             task=task,
             new_position=serializer.validated_data['position'],
+        )
+        task = selectors.get_by_id(task.id)
+        return Response(TaskDetailSerializer(task).data)
+
+    @action(detail=True, methods=['post'])
+    def set_tags(self, request, project_pk=None, pk=None):
+        task = self.get_object()
+        serializer = TaskSetTagsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        tag_services.set_task_tags(
+            task=task,
+            tag_ids=serializer.validated_data['tag_ids'],
         )
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)

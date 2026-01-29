@@ -25,6 +25,10 @@ task_reorder = TaskViewSet.as_view({
     'post': 'reorder',
 })
 
+task_set_tags = TaskViewSet.as_view({
+    'post': 'set_tags',
+})
+
 urlpatterns = [
     path(
         'projects/<int:project_pk>/tasks/',
@@ -50,5 +54,10 @@ urlpatterns = [
         'projects/<int:project_pk>/tasks/<int:pk>/reorder/',
         task_reorder,
         name='task-reorder',
+    ),
+    path(
+        'projects/<int:project_pk>/tasks/<int:pk>/tags/',
+        task_set_tags,
+        name='task-set-tags',
     ),
 ]

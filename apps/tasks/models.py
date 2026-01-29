@@ -54,6 +54,12 @@ class Task(TimestampMixin, models.Model):
     )
     deadline = models.DateTimeField('Дедлайн', null=True, blank=True)
     position = models.PositiveIntegerField('Позиция', default=0)
+    tags = models.ManyToManyField(
+        'tags.Tag',
+        blank=True,
+        related_name='tasks',
+        verbose_name='Теги',
+    )
 
     class Meta:
         verbose_name = 'Задача'

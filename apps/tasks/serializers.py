@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.tags.serializers import TagMinimalSerializer
 from apps.users.serializers import UserListSerializer
 
 from .models import Task
@@ -8,6 +9,7 @@ from .models import Task
 class TaskListSerializer(serializers.ModelSerializer):
     creator = UserListSerializer(read_only=True)
     assignee = UserListSerializer(read_only=True)
+    tags = TagMinimalSerializer(many=True, read_only=True)
 
     class Meta:
         model = Task
@@ -20,6 +22,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             'position',
             'creator',
             'assignee',
+            'tags',
             'created_at',
         ]
         read_only_fields = fields
@@ -28,6 +31,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 class TaskDetailSerializer(serializers.ModelSerializer):
     creator = UserListSerializer(read_only=True)
     assignee = UserListSerializer(read_only=True)
+    tags = TagMinimalSerializer(many=True, read_only=True)
 
     class Meta:
         model = Task
@@ -42,6 +46,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             'position',
             'creator',
             'assignee',
+            'tags',
             'created_at',
             'updated_at',
         ]
@@ -76,3 +81,11 @@ class TaskAssignSerializer(serializers.Serializer):
 
 class TaskReorderSerializer(serializers.Serializer):
     position = serializers.IntegerField(min_value=0)
+
+
+class TaskSetTagsSerializer(serializers.Serializer):
+    tag_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=True,
+        max_length=20,
+    )

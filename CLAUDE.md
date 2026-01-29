@@ -53,7 +53,9 @@ taskflow-drf/
 │   └── asgi.py
 ├── apps/                   # Django-приложения
 │   ├── users/              # ✅ Реализовано
-│   └── projects/           # ✅ Реализовано
+│   ├── projects/           # ✅ Реализовано
+│   ├── tasks/              # ✅ Реализовано
+│   └── tags/               # ✅ Реализовано
 ├── core/                   # Общий код
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
@@ -68,7 +70,9 @@ taskflow-drf/
 
 - `users/` — реализовано
 - `projects/` — реализовано
-- `tasks/`, `tags/`, `comments/`, `attachments/`, `notifications/`, `activity/` — планируется
+- `tasks/` — реализовано
+- `tags/` — реализовано
+- `comments/`, `attachments/`, `notifications/`, `activity/` — планируется
 
 ## Команды
 
@@ -170,6 +174,55 @@ def register_user(email: str) -> User:
 **Базовый URL:** `/api/v1/projects/` (CRUD проектов, управление участниками)
 
 **Celery задачи:** `send_project_invitation_email`, `send_role_changed_email`, `send_removed_from_project_email`
+
+### apps/tasks
+
+Управление задачами внутри проектов.
+
+**Модели:** `Task` (статусы: pending, in_progress, completed, cancelled; приоритеты: low, medium, high, urgent)
+
+**Базовый URL:** `/api/v1/projects/{project_id}/tasks/`
+
+**Эндпоинты:**
+- `GET/POST /tasks/` — список и создание
+- `GET/PATCH/DELETE /tasks/{id}/` — детали, обновление, удаление
+- `POST /tasks/{id}/status/` — смена статуса
+- `POST /tasks/{id}/assign/` — назначение исполнителя
+- `POST /tasks/{id}/reorder/` — изменение позиции
+- `POST /tasks/{id}/tags/` — установить теги задачи
+
+**Права доступа:**
+- Просмотр: все участники проекта
+- Создание: member, admin, owner (не viewer)
+- Редактирование: creator, assignee, admin, owner
+- Удаление: creator, admin, owner
+
+**Celery задачи:** `send_task_assigned_email`, `send_task_unassigned_email`, `send_task_status_changed_email`
+
+### apps/tags
+
+Теги для задач с привязкой к проекту.
+
+**Модели:** `Tag` (name, color — HEX формат #RRGGBB)
+
+**Связь с tasks:** M2M через `Task.tags`
+
+**Базовый URL:** `/api/v1/projects/{project_id}/tags/`
+
+**Эндпоинты:**
+- `GET/POST /tags/` — список и создание
+- `GET/PATCH/DELETE /tags/{id}/` — детали, обновление, удаление
+- `POST /tasks/{id}/tags/` — установить теги задачи
+
+**Права доступа:**
+- Просмотр: все участники проекта
+- Создание/редактирование/удаление: admin, owner
+- Установка тегов задачи: редактор задачи (creator, assignee, admin, owner)
+
+**Ограничения:**
+- Уникальность имени тега в рамках проекта (case-insensitive)
+- Максимум 20 тегов на задачу
+- Валидация HEX-цвета на уровне модели и сериализатора
 
 ## Документация по слоям
 
