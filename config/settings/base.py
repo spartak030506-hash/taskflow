@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     # Local
     'apps.users',
     'apps.projects',
+    'apps.tasks',
 ]
 
 AUTH_USER_MODEL = 'users.User'

@@ -52,7 +52,8 @@ taskflow-drf/
 │   ├── urls.py
 │   └── asgi.py
 ├── apps/                   # Django-приложения
-│   └── users/              # ✅ Реализовано
+│   ├── users/              # ✅ Реализовано
+│   └── projects/           # ✅ Реализовано
 ├── core/                   # Общий код
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
@@ -63,40 +64,11 @@ taskflow-drf/
 └── manage.py
 ```
 
-### Планируемые приложения
+### Приложения
 
-```
-apps/
-├── users/           ✅ Реализовано
-├── projects/        📋 Планируется
-├── tasks/           📋 Планируется
-├── tags/            📋 Планируется
-├── comments/        📋 Планируется
-├── attachments/     📋 Планируется
-├── notifications/   📋 Планируется
-└── activity/        📋 Планируется
-```
-
-### Структура приложения
-
-```
-apps/{app}/
-├── models.py
-├── selectors.py
-├── services.py
-├── serializers.py
-├── views.py
-├── urls.py
-├── permissions.py
-├── admin.py
-├── migrations/
-└── tests/
-    ├── conftest.py
-    ├── factories.py
-    ├── test_models.py
-    ├── test_services.py
-    └── test_views.py
-```
+- `users/` — реализовано
+- `projects/` — реализовано
+- `tasks/`, `tags/`, `comments/`, `attachments/`, `notifications/`, `activity/` — планируется
 
 ## Команды
 
@@ -185,22 +157,19 @@ def register_user(email: str) -> User:
 
 **Модели:** `User`, `EmailVerificationToken`, `PasswordResetToken`
 
-**API Endpoints:**
+**Базовые URL:** `/api/v1/auth/` (регистрация, токены, верификация), `/api/v1/users/` (CRUD профиля)
 
-| Метод | URL | Описание | Auth |
-|-------|-----|----------|------|
-| POST | `/api/v1/auth/register/` | Регистрация | — |
-| POST | `/api/v1/auth/token/` | Получение JWT (login) | — |
-| POST | `/api/v1/auth/token/refresh/` | Обновление access токена | — |
-| POST | `/api/v1/auth/verify-email/` | Подтверждение email | — |
-| POST | `/api/v1/auth/resend-verification/` | Повторная отправка | JWT |
-| POST | `/api/v1/auth/password-reset/` | Запрос сброса пароля | — |
-| POST | `/api/v1/auth/password-reset/confirm/` | Подтверждение сброса | — |
-| GET | `/api/v1/users/` | Список пользователей | Admin |
-| GET | `/api/v1/users/{id}/` | Профиль пользователя | JWT+Owner |
-| PATCH | `/api/v1/users/{id}/` | Обновление профиля | JWT+Owner |
-| GET | `/api/v1/users/me/` | Текущий пользователь | JWT |
-| POST | `/api/v1/users/me/change-password/` | Смена пароля | JWT |
+### apps/projects
+
+Управление проектами с ролевой моделью доступа.
+
+**Модели:** `Project`, `ProjectMember`
+
+**Роли:** `owner`, `admin`, `member`, `viewer`
+
+**Базовый URL:** `/api/v1/projects/` (CRUD проектов, управление участниками)
+
+**Celery задачи:** `send_project_invitation_email`, `send_role_changed_email`, `send_removed_from_project_email`
 
 ## Документация по слоям
 
