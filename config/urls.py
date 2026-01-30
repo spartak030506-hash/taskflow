@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/v1/', include('apps.projects.urls')),
     path('api/v1/', include('apps.tasks.urls')),
     path('api/v1/', include('apps.tags.urls')),
+    path('api/v1/', include('apps.comments.urls')),
 ]
 
 if settings.DEBUG:

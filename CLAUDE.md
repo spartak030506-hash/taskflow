@@ -55,7 +55,8 @@ taskflow-drf/
 │   ├── users/              # ✅ Реализовано
 │   ├── projects/           # ✅ Реализовано
 │   ├── tasks/              # ✅ Реализовано
-│   └── tags/               # ✅ Реализовано
+│   ├── tags/               # ✅ Реализовано
+│   └── comments/           # ✅ Реализовано
 ├── core/                   # Общий код
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
@@ -72,7 +73,8 @@ taskflow-drf/
 - `projects/` — реализовано
 - `tasks/` — реализовано
 - `tags/` — реализовано
-- `comments/`, `attachments/`, `notifications/`, `activity/` — планируется
+- `comments/` — реализовано
+- `attachments/`, `notifications/`, `activity/` — планируется
 
 ## Команды
 
@@ -223,6 +225,30 @@ def register_user(email: str) -> User:
 - Уникальность имени тега в рамках проекта (case-insensitive)
 - Максимум 20 тегов на задачу
 - Валидация HEX-цвета на уровне модели и сериализатора
+
+### apps/comments
+
+Комментарии к задачам с уведомлениями.
+
+**Модели:** `Comment` (task, author, content, is_edited)
+
+**Базовый URL:** `/api/v1/projects/{project_id}/tasks/{task_id}/comments/`
+
+**Эндпоинты:**
+- `GET/POST /comments/` — список и создание
+- `GET/PATCH/DELETE /comments/{id}/` — детали, обновление, удаление
+
+**Права доступа:**
+- Просмотр: все участники проекта
+- Создание: member, admin, owner (не viewer)
+- Редактирование: только автор
+- Удаление: автор, admin, owner
+
+**Celery задачи:** `send_comment_notification_to_assignee`, `send_comment_notification_to_creator`
+
+**Ограничения:**
+- Контент: 1-10000 символов
+- При редактировании устанавливается флаг `is_edited=True`
 
 ## Документация по слоям
 
