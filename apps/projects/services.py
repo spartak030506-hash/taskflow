@@ -26,8 +26,6 @@ def create_project(*, owner: User, name: str, description: str = '') -> Project:
         role=ProjectMember.Role.OWNER,
     )
 
-    project.refresh_from_db()
-    project.owner = owner
     return project
 
 

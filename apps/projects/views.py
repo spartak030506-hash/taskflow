@@ -1,6 +1,6 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -31,9 +31,9 @@ class ProjectViewSet(viewsets.GenericViewSet):
             return [IsAuthenticated(), IsProjectAdminOrOwner()]
         if self.action == 'destroy':
             return [IsAuthenticated(), IsProjectOwner()]
-        if self.action in ['retrieve', 'leave']:
+        if self.action in ['retrieve', 'members', 'leave']:
             return [IsAuthenticated(), IsProjectMember()]
-        if self.action == 'member_detail':
+        if self.action in ['member_detail', 'add_member']:
             return [IsAuthenticated(), IsProjectAdminOrOwner()]
         return [IsAuthenticated()]
 
@@ -72,14 +72,14 @@ class ProjectViewSet(viewsets.GenericViewSet):
             owner=request.user,
             **serializer.validated_data,
         )
+        project = selectors.get_by_id(project.id)
         return Response(
             ProjectDetailSerializer(project).data,
             status=status.HTTP_201_CREATED,
         )
 
     def retrieve(self, request, pk=None):
-        project = selectors.get_by_id_with_members_count(self.kwargs.get('pk'))
-        self.check_object_permissions(self.request, project)
+        project = self.get_object()
         serializer = ProjectDetailSerializer(project)
         return Response(serializer.data)
 
@@ -88,10 +88,11 @@ class ProjectViewSet(viewsets.GenericViewSet):
         serializer = ProjectUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        project = services.update_project(
+        services.update_project(
             project=project,
             **serializer.validated_data,
         )
+        project = selectors.get_by_id(project.id)
         return Response(ProjectDetailSerializer(project).data)
 
     def destroy(self, request, pk=None):
@@ -102,45 +103,39 @@ class ProjectViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=['post'])
     def archive(self, request, pk=None):
         project = self.get_object()
-        project = services.archive_project(project=project)
+        services.archive_project(project=project)
+        project = selectors.get_by_id(project.id)
         return Response(ProjectDetailSerializer(project).data)
 
-    @action(detail=True, methods=['get', 'post'])
+    @action(detail=True, methods=['get'])
     def members(self, request, pk=None):
-        project = selectors.get_by_id(self.kwargs.get('pk'))
+        project = self.get_object()
+        members = selectors.filter_members(project)
 
-        if request.method == 'GET':
-            if not selectors.exists_member(project, request.user):
-                raise PermissionDenied()
-        else:
-            if not selectors.is_admin_or_owner(project, request.user):
-                raise PermissionDenied()
+        page = self.paginate_queryset(members)
+        if page is not None:
+            serializer = ProjectMemberSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-        if request.method == 'GET':
-            members = selectors.filter_members(project)
+        serializer = ProjectMemberSerializer(members, many=True)
+        return Response(serializer.data)
 
-            page = self.paginate_queryset(members)
-            if page is not None:
-                serializer = ProjectMemberSerializer(page, many=True)
-                return self.get_paginated_response(serializer.data)
+    @action(detail=True, methods=['post'], url_path='members/add')
+    def add_member(self, request, pk=None):
+        project = self.get_object()
+        serializer = ProjectMemberCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            serializer = ProjectMemberSerializer(members, many=True)
-            return Response(serializer.data)
-
-        if request.method == 'POST':
-            serializer = ProjectMemberCreateSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-
-            user = user_selectors.get_by_id(serializer.validated_data['user_id'])
-            member = services.add_member(
-                project=project,
-                user=user,
-                role=serializer.validated_data['role'],
-            )
-            return Response(
-                ProjectMemberSerializer(member).data,
-                status=status.HTTP_201_CREATED,
-            )
+        user = user_selectors.get_by_id(serializer.validated_data['user_id'])
+        member = services.add_member(
+            project=project,
+            user=user,
+            role=serializer.validated_data['role'],
+        )
+        return Response(
+            ProjectMemberSerializer(member).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=['patch', 'delete'], url_path='members/(?P<user_id>[^/.]+)')
     def member_detail(self, request, pk=None, user_id=None):
