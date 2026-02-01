@@ -73,12 +73,6 @@ class Task(TimestampMixin, models.Model):
             models.Index(fields=['deadline']),
             models.Index(fields=['-created_at']),
         ]
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(position__gte=0),
-                name='task_position_non_negative',
-            ),
-        ]
 
     def __str__(self):
         return self.title
