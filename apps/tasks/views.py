@@ -1,7 +1,10 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from core.exceptions import NotFoundError
 
 from apps.projects import selectors as project_selectors
 from apps.tags import services as tag_services
@@ -87,11 +90,18 @@ class TaskViewSet(viewsets.GenericViewSet):
 
         project_id = self.kwargs.get('project_pk')
         if task.project_id != int(project_id):
-            from core.exceptions import NotFoundError
             raise NotFoundError('Задача не найдена в этом проекте')
 
         self.check_object_permissions(self.request, task)
         return task
+
+    def _validate_assignee(self, assignee_id, project):
+        assignee = user_selectors.get_by_id(assignee_id)
+        if not project_selectors.exists_member(project, assignee):
+            raise ValidationError({
+                'assignee_id': 'Пользователь не является участником проекта'
+            })
+        return assignee
 
     def list(self, request, project_pk=None):
         queryset = self.get_queryset()
@@ -112,12 +122,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         assignee = None
         assignee_id = data.pop('assignee_id', None)
         if assignee_id:
-            assignee = user_selectors.get_by_id(assignee_id)
-            if not project_selectors.exists_member(project, assignee):
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({
-                    'assignee_id': 'Пользователь не является участником проекта'
-                })
+            assignee = self._validate_assignee(assignee_id, project)
 
         task = services.create_task(
             project=project,
@@ -173,12 +178,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         assignee = None
         assignee_id = serializer.validated_data['assignee_id']
         if assignee_id:
-            assignee = user_selectors.get_by_id(assignee_id)
-            if not project_selectors.exists_member(project, assignee):
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({
-                    'assignee_id': 'Пользователь не является участником проекта'
-                })
+            assignee = self._validate_assignee(assignee_id, project)
 
         services.assign_task(
             task=task,

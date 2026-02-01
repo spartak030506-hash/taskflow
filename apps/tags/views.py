@@ -2,6 +2,8 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.exceptions import NotFoundError
+
 from apps.projects import selectors as project_selectors
 
 from . import selectors, services
@@ -55,7 +57,6 @@ class TagViewSet(viewsets.GenericViewSet):
 
         project_id = self.kwargs.get('project_pk')
         if tag.project_id != int(project_id):
-            from core.exceptions import NotFoundError
             raise NotFoundError('Тег не найден в этом проекте')
 
         self.check_object_permissions(self.request, tag)
@@ -79,6 +80,7 @@ class TagViewSet(viewsets.GenericViewSet):
             project=project,
             **serializer.validated_data,
         )
+        tag = selectors.get_by_id(tag.id)
         return Response(
             TagDetailSerializer(tag).data,
             status=status.HTTP_201_CREATED,
