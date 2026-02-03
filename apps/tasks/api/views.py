@@ -10,8 +10,8 @@ from apps.projects import selectors as project_selectors
 from apps.tags import services as tag_services
 from apps.users import selectors as user_selectors
 
-from . import selectors, services
-from .models import Task
+from .. import selectors, services
+from ..models import Task
 from .permissions import CanCreateTask, CanDeleteTask, CanEditTask, CanViewTask
 from .serializers import (
     TaskAssignSerializer,

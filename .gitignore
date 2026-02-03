@@ -56,3 +56,4 @@ staticfiles/
 *.pot
 
 rules-drf-django/
+.AI-docs/

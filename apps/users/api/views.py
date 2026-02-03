@@ -4,8 +4,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import selectors, services
-from .models import User
+from .. import selectors, services
+from ..models import User
 from .permissions import IsOwner
 from .serializers import (
     UserListSerializer,

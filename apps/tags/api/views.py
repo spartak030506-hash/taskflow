@@ -6,8 +6,8 @@ from core.exceptions import NotFoundError
 
 from apps.projects import selectors as project_selectors
 
-from . import selectors, services
-from .models import Tag
+from .. import selectors, services
+from ..models import Tag
 from .permissions import CanManageTag, CanViewTag
 from .serializers import (
     TagCreateSerializer,

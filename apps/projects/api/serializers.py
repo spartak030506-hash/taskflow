@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
-from apps.users.serializers import UserListSerializer
+from apps.users.api.serializers import UserListSerializer
 
-from .models import Project, ProjectMember
+from ..models import Project, ProjectMember
 
 
 class ProjectListSerializer(serializers.ModelSerializer):

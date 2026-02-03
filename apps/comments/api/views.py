@@ -6,8 +6,8 @@ from apps.projects import selectors as project_selectors
 from apps.tasks import selectors as task_selectors
 from core.exceptions import NotFoundError
 
-from . import selectors, services
-from .models import Comment
+from .. import selectors, services
+from ..models import Comment
 from .permissions import (
     CanCreateComment,
     CanDeleteComment,

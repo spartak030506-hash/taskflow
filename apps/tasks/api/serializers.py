@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
-from apps.tags.serializers import TagMinimalSerializer
-from apps.users.serializers import UserListSerializer
+from apps.tags.api.serializers import TagMinimalSerializer
+from apps.users.api.serializers import UserListSerializer
 
-from .models import Task
+from ..models import Task
 
 
 class TaskListSerializer(serializers.ModelSerializer):

@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
-from . import selectors
-from .models import ProjectMember
+from .. import selectors
+from ..models import ProjectMember
 
 
 class IsProjectMember(permissions.BasePermission):

@@ -6,8 +6,8 @@ from rest_framework.response import Response
 
 from apps.users import selectors as user_selectors
 
-from . import selectors, services
-from .models import Project
+from .. import selectors, services
+from ..models import Project
 from .permissions import IsProjectAdminOrOwner, IsProjectMember, IsProjectOwner
 from .serializers import (
     ProjectCreateSerializer,

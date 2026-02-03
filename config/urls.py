@@ -9,11 +9,11 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
-    path('api/v1/', include('apps.users.urls')),
-    path('api/v1/', include('apps.projects.urls')),
-    path('api/v1/', include('apps.tasks.urls')),
-    path('api/v1/', include('apps.tags.urls')),
-    path('api/v1/', include('apps.comments.urls')),
+    path('api/v1/', include('apps.users.api.urls')),
+    path('api/v1/', include('apps.projects.api.urls')),
+    path('api/v1/', include('apps.tasks.api.urls')),
+    path('api/v1/', include('apps.tags.api.urls')),
+    path('api/v1/', include('apps.comments.api.urls')),
 ]
 
 if settings.DEBUG:
