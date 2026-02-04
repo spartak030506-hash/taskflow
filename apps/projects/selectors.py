@@ -55,7 +55,7 @@ def get_by_id_with_members_count(project_id: int) -> Project:
 def filter_for_user(user: User) -> QuerySet[Project]:
     return Project.objects.filter(
         members__user=user
-    ).select_related('owner').distinct()
+    ).select_related('owner').distinct().order_by('-created_at')
 
 
 def filter_for_user_with_members_count(user: User) -> QuerySet[Project]:
@@ -63,7 +63,7 @@ def filter_for_user_with_members_count(user: User) -> QuerySet[Project]:
         members__user=user
     ).select_related('owner').annotate(
         members_count=Count('members')
-    ).distinct()
+    ).distinct().order_by('-created_at')
 
 
 def get_member(project: Project, user: User) -> ProjectMember:
