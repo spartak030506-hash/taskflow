@@ -53,19 +53,72 @@ taskflow-drf/
 │   └── asgi.py
 ├── apps/                   # Django-приложения
 │   ├── users/              # ✅ Реализовано
-│   ├── projects/           # ✅ Реализовано
-│   ├── tasks/              # ✅ Реализовано
-│   ├── tags/               # ✅ Реализовано
-│   └── comments/           # ✅ Реализовано
+│   │   ├── api/            # API-слой (views, serializers, permissions, urls)
+│   │   ├── models.py       # Бизнес-слой
+│   │   ├── selectors.py    # Бизнес-слой
+│   │   ├── services.py     # Бизнес-слой
+│   │   └── tasks.py        # Бизнес-слой (Celery)
+│   ├── projects/           # ✅ Реализовано (аналогичная структура)
+│   ├── tasks/              # ✅ Реализовано (аналогичная структура)
+│   ├── tags/               # ✅ Реализовано (аналогичная структура)
+│   └── comments/           # ✅ Реализовано (аналогичная структура)
 ├── core/                   # Общий код
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
 │   └── pagination.py       # StandardPagination
+├── .AI-docs/               # Документация по разработке
+│   └── rules-drf-django/
 ├── docker/
 ├── docker-compose.yml
 ├── pyproject.toml
 └── manage.py
 ```
+
+### Структура приложения
+
+Каждое приложение разделено на **бизнес-слой** и **API-слой**:
+
+```
+apps/<app>/
+├── models.py              # Бизнес-слой: модели данных
+├── selectors.py           # Бизнес-слой: чтение из БД
+├── services.py            # Бизнес-слой: бизнес-логика
+├── tasks.py               # Бизнес-слой: Celery задачи
+├── admin.py               # Django admin
+├── apps.py
+│
+└── api/                   # API-слой
+    ├── __init__.py        # Реэкспорты для удобства
+    ├── views.py           # ViewSets, APIView
+    ├── serializers.py     # DRF сериализаторы
+    ├── permissions.py     # DRF permissions
+    └── urls.py            # URL маршруты
+```
+
+**Правила импортов:**
+
+1. **Внутри api/** — импорт бизнес-слоя через `..`:
+   ```python
+   # api/views.py
+   from .. import selectors, services
+   from ..models import Model
+   from .serializers import Serializer  # из той же api/
+   ```
+
+2. **Межприложенческие импорты API** — через `.api.`:
+   ```python
+   # apps/tasks/api/serializers.py
+   from apps.users.api.serializers import UserListSerializer
+   from apps.tags.api.serializers import TagMinimalSerializer
+   ```
+
+3. **Бизнес-слой** — импортирует только бизнес-слой (никогда не импортирует из api/):
+   ```python
+   # apps/tasks/services.py
+   from apps.projects import selectors as project_selectors
+   from apps.users.models import User
+   # ❌ НИКОГДА: from apps.users.api.serializers import ...
+   ```
 
 ### Приложения
 
@@ -256,7 +309,7 @@ def register_user(email: str) -> User:
 
 ### При написании Models
 
-Читай: [common/02-models.md](rules-drf-django/django-rules/common/02-models.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/common/02-models.md](.AI-docs/rules-drf-django/django-rules/common/02-models.md)
 
 Ключевое:
 - `TextChoices`/`IntegerChoices` для enum
@@ -266,7 +319,7 @@ def register_user(email: str) -> User:
 
 ### При написании Selectors
 
-Читай: [common/03-selectors.md](rules-drf-django/django-rules/common/03-selectors.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/common/03-selectors.md](.AI-docs/rules-drf-django/django-rules/common/03-selectors.md)
 
 Ключевое:
 - Всегда `select_related` для FK/OneToOne
@@ -276,7 +329,7 @@ def register_user(email: str) -> User:
 
 ### При написании Services
 
-Читай: [common/04-services.md](rules-drf-django/django-rules/common/04-services.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/common/04-services.md](.AI-docs/rules-drf-django/django-rules/common/04-services.md)
 
 Ключевое:
 - `@transaction.atomic` на каждом методе записи
@@ -286,7 +339,7 @@ def register_user(email: str) -> User:
 
 ### При написании Serializers
 
-Читай: [drf/02-serializers.md](rules-drf-django/django-rules/drf/02-serializers.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/drf/02-serializers.md](.AI-docs/rules-drf-django/django-rules/drf/02-serializers.md)
 
 Ключевое:
 - Разные сериализаторы: `*ListSerializer`, `*DetailSerializer`, `*CreateSerializer`
@@ -296,7 +349,7 @@ def register_user(email: str) -> User:
 
 ### При написании Views/ViewSets
 
-Читай: [drf/01-viewsets.md](rules-drf-django/django-rules/drf/01-viewsets.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md](.AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md)
 
 Ключевое:
 - `get_queryset()` использует селекторы
@@ -306,16 +359,16 @@ def register_user(email: str) -> User:
 
 ### При написании Permissions
 
-Читай: [security/02-permissions.md](rules-drf-django/django-rules/security/02-permissions.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/security/02-permissions.md](.AI-docs/rules-drf-django/django-rules/security/02-permissions.md)
 
 Ключевое:
 - `has_permission()` — доступ к view
 - `has_object_permission()` — доступ к объекту
-- Выносить в отдельный `permissions.py`
+- Выносить в отдельный `api/permissions.py`
 
 ### При оптимизации запросов
 
-Читай: [optimization/01-database-queries.md](rules-drf-django/django-rules/optimization/01-database-queries.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md](.AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md)
 
 Ключевое:
 - `QuerySet.explain()` для анализа
@@ -325,7 +378,7 @@ def register_user(email: str) -> User:
 
 ### При написании тестов
 
-Читай: [quality/01-testing.md](rules-drf-django/django-rules/quality/01-testing.md)
+Читай: [.AI-docs/rules-drf-django/django-rules/quality/01-testing.md](.AI-docs/rules-drf-django/django-rules/quality/01-testing.md)
 
 Ключевое:
 - Factory Boy для создания объектов
@@ -336,48 +389,48 @@ def register_user(email: str) -> User:
 ## Полный список документации
 
 **Архитектура:**
-- rules-drf-django/django-rules/architecture/01-layers.md
-- rules-drf-django/django-rules/architecture/02-patterns.md
+- .AI-docs/rules-drf-django/django-rules/architecture/01-layers.md
+- .AI-docs/rules-drf-django/django-rules/architecture/02-patterns.md
 
 **Основное:**
-- rules-drf-django/django-rules/common/01-project-structure.md
-- rules-drf-django/django-rules/common/02-models.md
-- rules-drf-django/django-rules/common/03-selectors.md
-- rules-drf-django/django-rules/common/04-services.md
-- rules-drf-django/django-rules/common/05-urls.md
-- rules-drf-django/django-rules/common/06-migrations.md
-- rules-drf-django/django-rules/common/07-admin.md
-- rules-drf-django/django-rules/common/08-signals.md
-- rules-drf-django/django-rules/common/09-middleware.md
-- rules-drf-django/django-rules/common/10-commands.md
-- rules-drf-django/django-rules/common/11-task.md
-- rules-drf-django/django-rules/common/12-deployment.md
+- .AI-docs/rules-drf-django/django-rules/common/01-project-structure.md
+- .AI-docs/rules-drf-django/django-rules/common/02-models.md
+- .AI-docs/rules-drf-django/django-rules/common/03-selectors.md
+- .AI-docs/rules-drf-django/django-rules/common/04-services.md
+- .AI-docs/rules-drf-django/django-rules/common/05-urls.md
+- .AI-docs/rules-drf-django/django-rules/common/06-migrations.md
+- .AI-docs/rules-drf-django/django-rules/common/07-admin.md
+- .AI-docs/rules-drf-django/django-rules/common/08-signals.md
+- .AI-docs/rules-drf-django/django-rules/common/09-middleware.md
+- .AI-docs/rules-drf-django/django-rules/common/10-commands.md
+- .AI-docs/rules-drf-django/django-rules/common/11-task.md
+- .AI-docs/rules-drf-django/django-rules/common/12-deployment.md
 
 **DRF:**
-- rules-drf-django/django-rules/drf/01-viewsets.md
-- rules-drf-django/django-rules/drf/02-serializers.md
-- rules-drf-django/django-rules/drf/03-pagination.md
-- rules-drf-django/django-rules/drf/04-filtering.md
-- rules-drf-django/django-rules/drf/05-versioning.md
-- rules-drf-django/django-rules/drf/06-exceptions.md
+- .AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md
+- .AI-docs/rules-drf-django/django-rules/drf/02-serializers.md
+- .AI-docs/rules-drf-django/django-rules/drf/03-pagination.md
+- .AI-docs/rules-drf-django/django-rules/drf/04-filtering.md
+- .AI-docs/rules-drf-django/django-rules/drf/05-versioning.md
+- .AI-docs/rules-drf-django/django-rules/drf/06-exceptions.md
 
 **Безопасность:**
-- rules-drf-django/django-rules/security/01-authentication.md
-- rules-drf-django/django-rules/security/02-permissions.md
-- rules-drf-django/django-rules/security/03-validation.md
-- rules-drf-django/django-rules/security/04-vulnerabilities.md
-- rules-drf-django/django-rules/security/05-secrets.md
-- rules-drf-django/django-rules/security/06-throttling.md
+- .AI-docs/rules-drf-django/django-rules/security/01-authentication.md
+- .AI-docs/rules-drf-django/django-rules/security/02-permissions.md
+- .AI-docs/rules-drf-django/django-rules/security/03-validation.md
+- .AI-docs/rules-drf-django/django-rules/security/04-vulnerabilities.md
+- .AI-docs/rules-drf-django/django-rules/security/05-secrets.md
+- .AI-docs/rules-drf-django/django-rules/security/06-throttling.md
 
 **Оптимизация:**
-- rules-drf-django/django-rules/optimization/01-database-queries.md
-- rules-drf-django/django-rules/optimization/02-caching.md
-- rules-drf-django/django-rules/optimization/03-indexes.md
-- rules-drf-django/django-rules/optimization/04-celery.md
+- .AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md
+- .AI-docs/rules-drf-django/django-rules/optimization/02-caching.md
+- .AI-docs/rules-drf-django/django-rules/optimization/03-indexes.md
+- .AI-docs/rules-drf-django/django-rules/optimization/04-celery.md
 
 **Качество:**
-- rules-drf-django/django-rules/quality/01-testing.md
-- rules-drf-django/django-rules/quality/02-code-style.md
-- rules-drf-django/django-rules/quality/03-documentation.md
-- rules-drf-django/django-rules/quality/04-logging.md
-- rules-drf-django/django-rules/quality/05-error-handling.md
+- .AI-docs/rules-drf-django/django-rules/quality/01-testing.md
+- .AI-docs/rules-drf-django/django-rules/quality/02-code-style.md
+- .AI-docs/rules-drf-django/django-rules/quality/03-documentation.md
+- .AI-docs/rules-drf-django/django-rules/quality/04-logging.md
+- .AI-docs/rules-drf-django/django-rules/quality/05-error-handling.md

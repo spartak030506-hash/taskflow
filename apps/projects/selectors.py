@@ -1,4 +1,4 @@
-from django.db.models import Count, QuerySet
+from django.db.models import Count, Q, QuerySet
 
 from apps.users.models import User
 from core.exceptions import NotFoundError
@@ -89,3 +89,18 @@ def is_admin_or_owner(project: Project, user: User) -> bool:
         user=user,
         role__in=[ProjectMember.Role.OWNER, ProjectMember.Role.ADMIN],
     ).exists()
+
+
+def get_project_with_task_stats(project_id: int) -> Project:
+    from apps.tasks.models import Task
+
+    try:
+        return Project.objects.select_related('owner').annotate(
+            total_tasks=Count('tasks'),
+            completed_tasks=Count('tasks', filter=Q(tasks__status=Task.Status.COMPLETED)),
+            pending_tasks=Count('tasks', filter=Q(tasks__status=Task.Status.PENDING)),
+            in_progress_tasks=Count('tasks', filter=Q(tasks__status=Task.Status.IN_PROGRESS)),
+            members_count=Count('members', distinct=True),
+        ).get(id=project_id)
+    except Project.DoesNotExist:
+        raise NotFoundError('Проект не найден')
