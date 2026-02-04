@@ -1,6 +1,10 @@
 from django.db import transaction
 
 from apps.users.models import User
+from core.cache import (
+    invalidate_membership_cache,
+    invalidate_project_cache,
+)
 from core.exceptions import ConflictError, ValidationError
 
 from . import selectors
@@ -47,18 +51,38 @@ def update_project(
         update_fields.append('description')
 
     project.save(update_fields=update_fields)
+
+    _project_id = project.id
+    transaction.on_commit(lambda: invalidate_project_cache(_project_id))
+
     return project
 
 
 @transaction.atomic
 def delete_project(*, project: Project) -> None:
+    _project_id = project.id
+    _member_user_ids = list(
+        ProjectMember.objects.filter(project=project).values_list('user_id', flat=True)
+    )
+
     project.delete()
+
+    def _invalidate():
+        invalidate_project_cache(_project_id)
+        for user_id in _member_user_ids:
+            invalidate_membership_cache(_project_id, user_id)
+
+    transaction.on_commit(_invalidate)
 
 
 @transaction.atomic
 def archive_project(*, project: Project) -> Project:
     project.status = Project.Status.ARCHIVED
     project.save(update_fields=['status', 'updated_at'])
+
+    _project_id = project.id
+    transaction.on_commit(lambda: invalidate_project_cache(_project_id))
+
     return project
 
 
@@ -84,9 +108,12 @@ def add_member(
     _user_id = user.id
     _project_id = project.id
     _role = role
-    transaction.on_commit(
-        lambda: send_project_invitation_email.delay(_user_id, _project_id, _role)
-    )
+
+    def _on_commit():
+        invalidate_membership_cache(_project_id, _user_id)
+        send_project_invitation_email.delay(_user_id, _project_id, _role)
+
+    transaction.on_commit(_on_commit)
 
     return member
 
@@ -103,13 +130,16 @@ def update_member_role(*, membership: ProjectMember, role: str) -> ProjectMember
     membership.role = role
     membership.save(update_fields=['role'])
 
-    if old_role != role:
-        _user_id = membership.user_id
-        _project_id = membership.project_id
-        _role = role
-        transaction.on_commit(
-            lambda: send_role_changed_email.delay(_user_id, _project_id, _role)
-        )
+    _user_id = membership.user_id
+    _project_id = membership.project_id
+    _role = role
+
+    def _on_commit():
+        invalidate_membership_cache(_project_id, _user_id)
+        if old_role != _role:
+            send_role_changed_email.delay(_user_id, _project_id, _role)
+
+    transaction.on_commit(_on_commit)
 
     return membership
 
@@ -120,13 +150,16 @@ def remove_member(*, membership: ProjectMember) -> None:
         raise ValidationError('Нельзя удалить владельца из проекта')
 
     _user_id = membership.user_id
+    _project_id = membership.project_id
     _project_name = membership.project.name
 
     membership.delete()
 
-    transaction.on_commit(
-        lambda: send_removed_from_project_email.delay(_user_id, _project_name)
-    )
+    def _on_commit():
+        invalidate_membership_cache(_project_id, _user_id)
+        send_removed_from_project_email.delay(_user_id, _project_name)
+
+    transaction.on_commit(_on_commit)
 
 
 @transaction.atomic
@@ -136,4 +169,9 @@ def leave_project(*, project: Project, user: User) -> None:
     if membership.role == ProjectMember.Role.OWNER:
         raise ValidationError('Владелец не может покинуть проект')
 
+    _project_id = project.id
+    _user_id = user.id
+
     membership.delete()
+
+    transaction.on_commit(lambda: invalidate_membership_cache(_project_id, _user_id))

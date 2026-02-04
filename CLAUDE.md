@@ -63,11 +63,12 @@ taskflow-drf/
 │   ├── tags/               # ✅ Реализовано (аналогичная структура)
 │   └── comments/           # ✅ Реализовано (аналогичная структура)
 ├── core/                   # Общий код
+│   ├── cache.py            # CacheKeys, CacheTTL, функции инвалидации
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
 │   └── pagination.py       # StandardPagination
 ├── .AI-docs/               # Документация по разработке
-│   └── rules-drf-django/
+│   └── 
 ├── docker/
 ├── docker-compose.yml
 ├── pyproject.toml
@@ -158,12 +159,13 @@ pip install -e ".[dev]"
 ### Обязательно
 
 - `@transaction.atomic` для всех операций записи в сервисах
-- `transaction.on_commit()` для Celery задач внутри транзакции
+- `transaction.on_commit()` для Celery задач и инвалидации кеша
 - `select_related`/`prefetch_related` в каждом селекторе
 - `update_fields` при `save()` (включая `updated_at` если модель наследует `TimestampMixin`)
 - Явный `on_delete` для всех ForeignKey
 - Исключения вместо `None` в селекторах
 - `select_for_update()` для конкурентного доступа к данным
+- Инвалидация кеша при изменении закешированных данных
 
 ### Запрещено
 
@@ -173,6 +175,7 @@ pip install -e ".[dev]"
 - Синхронные задачи (email, внешние API) внутри транзакции
 - Возврат `dict` вместо объекта из сервисов
 - `FloatField` для денег (только `DecimalField`)
+- Кеширование `select_for_update()` селекторов (сломает блокировку)
 
 ### Паттерны именования
 
@@ -229,6 +232,17 @@ def register_user(email: str) -> User:
 **Базовый URL:** `/api/v1/projects/` (CRUD проектов, управление участниками)
 
 **Celery задачи:** `send_project_invitation_email`, `send_role_changed_email`, `send_removed_from_project_email`
+
+**Кеширование (Redis):**
+
+| Селектор | Ключ | TTL |
+|----------|------|-----|
+| `get_by_id()` | `projects:by_id:{id}` | 10 мин |
+| `get_member_role()` | `projects:member_role:{project_id}:{user_id}` | 5 мин |
+| `exists_member()` | `projects:exists_member:{project_id}:{user_id}` | 5 мин |
+| `is_admin_or_owner()` | `projects:is_admin_or_owner:{project_id}:{user_id}` | 5 мин |
+
+Инвалидация через `transaction.on_commit()` в сервисах.
 
 ### apps/tasks
 
@@ -309,7 +323,7 @@ def register_user(email: str) -> User:
 
 ### При написании Models
 
-Читай: [.AI-docs/rules-drf-django/django-rules/common/02-models.md](.AI-docs/rules-drf-django/django-rules/common/02-models.md)
+Читай: [.AI-docs/django-rules/common/02-models.md](.AI-docs/django-rules/common/02-models.md)
 
 Ключевое:
 - `TextChoices`/`IntegerChoices` для enum
@@ -319,7 +333,7 @@ def register_user(email: str) -> User:
 
 ### При написании Selectors
 
-Читай: [.AI-docs/rules-drf-django/django-rules/common/03-selectors.md](.AI-docs/rules-drf-django/django-rules/common/03-selectors.md)
+Читай: [.AI-docs/django-rules/common/03-selectors.md](.AI-docs/django-rules/common/03-selectors.md)
 
 Ключевое:
 - Всегда `select_related` для FK/OneToOne
@@ -329,7 +343,7 @@ def register_user(email: str) -> User:
 
 ### При написании Services
 
-Читай: [.AI-docs/rules-drf-django/django-rules/common/04-services.md](.AI-docs/rules-drf-django/django-rules/common/04-services.md)
+Читай: [.AI-docs/django-rules/common/04-services.md](.AI-docs/django-rules/common/04-services.md)
 
 Ключевое:
 - `@transaction.atomic` на каждом методе записи
@@ -339,7 +353,7 @@ def register_user(email: str) -> User:
 
 ### При написании Serializers
 
-Читай: [.AI-docs/rules-drf-django/django-rules/drf/02-serializers.md](.AI-docs/rules-drf-django/django-rules/drf/02-serializers.md)
+Читай: [.AI-docs/django-rules/drf/02-serializers.md](.AI-docs/django-rules/drf/02-serializers.md)
 
 Ключевое:
 - Разные сериализаторы: `*ListSerializer`, `*DetailSerializer`, `*CreateSerializer`
@@ -349,7 +363,7 @@ def register_user(email: str) -> User:
 
 ### При написании Views/ViewSets
 
-Читай: [.AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md](.AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md)
+Читай: [.AI-docs/django-rules/drf/01-viewsets.md](.AI-docs/django-rules/drf/01-viewsets.md)
 
 Ключевое:
 - `get_queryset()` использует селекторы
@@ -359,7 +373,7 @@ def register_user(email: str) -> User:
 
 ### При написании Permissions
 
-Читай: [.AI-docs/rules-drf-django/django-rules/security/02-permissions.md](.AI-docs/rules-drf-django/django-rules/security/02-permissions.md)
+Читай: [.AI-docs/django-rules/security/02-permissions.md](.AI-docs/django-rules/security/02-permissions.md)
 
 Ключевое:
 - `has_permission()` — доступ к view
@@ -368,7 +382,7 @@ def register_user(email: str) -> User:
 
 ### При оптимизации запросов
 
-Читай: [.AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md](.AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md)
+Читай: [.AI-docs/django-rules/optimization/01-database-queries.md](.AI-docs/django-rules/optimization/01-database-queries.md)
 
 Ключевое:
 - `QuerySet.explain()` для анализа
@@ -376,9 +390,50 @@ def register_user(email: str) -> User:
 - `count()` вместо `len(queryset)`
 - `values_list('id', flat=True)` для списков ID
 
+### При кешировании
+
+Читай: [.AI-docs/django-rules/optimization/02-caching.md](.AI-docs/django-rules/optimization/02-caching.md)
+
+Ключевое:
+- Ключи и TTL в `core/cache.py` (`CacheKeys`, `CacheTTL`)
+- `CACHE_NONE_SENTINEL` для различия "нет в кеше" и "значение None"
+- Инвалидация через `transaction.on_commit()` в сервисах
+- `cache.delete_many()` для удаления нескольких ключей
+- НЕ кешировать `select_for_update()` селекторы
+
+Пример кеширования в селекторе:
+```python
+from django.core.cache import cache
+from core.cache import CacheKeys, CacheTTL
+
+def get_by_id(project_id: int) -> Project:
+    cache_key = CacheKeys.PROJECT_BY_ID.format(project_id=project_id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    project = Project.objects.select_related('owner').get(id=project_id)
+    cache.set(cache_key, project, CacheTTL.PROJECT)
+    return project
+```
+
+Пример инвалидации в сервисе:
+```python
+from core.cache import invalidate_project_cache
+
+@transaction.atomic
+def update_project(*, project: Project, name: str) -> Project:
+    project.name = name
+    project.save(update_fields=['name', 'updated_at'])
+
+    _project_id = project.id
+    transaction.on_commit(lambda: invalidate_project_cache(_project_id))
+    return project
+```
+
 ### При написании тестов
 
-Читай: [.AI-docs/rules-drf-django/django-rules/quality/01-testing.md](.AI-docs/rules-drf-django/django-rules/quality/01-testing.md)
+Читай: [.AI-docs/django-rules/quality/01-testing.md](.AI-docs/django-rules/quality/01-testing.md)
 
 Ключевое:
 - Factory Boy для создания объектов
@@ -389,48 +444,48 @@ def register_user(email: str) -> User:
 ## Полный список документации
 
 **Архитектура:**
-- .AI-docs/rules-drf-django/django-rules/architecture/01-layers.md
-- .AI-docs/rules-drf-django/django-rules/architecture/02-patterns.md
+- .AI-docs/django-rules/architecture/01-layers.md
+- .AI-docs/django-rules/architecture/02-patterns.md
 
 **Основное:**
-- .AI-docs/rules-drf-django/django-rules/common/01-project-structure.md
-- .AI-docs/rules-drf-django/django-rules/common/02-models.md
-- .AI-docs/rules-drf-django/django-rules/common/03-selectors.md
-- .AI-docs/rules-drf-django/django-rules/common/04-services.md
-- .AI-docs/rules-drf-django/django-rules/common/05-urls.md
-- .AI-docs/rules-drf-django/django-rules/common/06-migrations.md
-- .AI-docs/rules-drf-django/django-rules/common/07-admin.md
-- .AI-docs/rules-drf-django/django-rules/common/08-signals.md
-- .AI-docs/rules-drf-django/django-rules/common/09-middleware.md
-- .AI-docs/rules-drf-django/django-rules/common/10-commands.md
-- .AI-docs/rules-drf-django/django-rules/common/11-task.md
-- .AI-docs/rules-drf-django/django-rules/common/12-deployment.md
+- .AI-docs/django-rules/common/01-project-structure.md
+- .AI-docs/django-rules/common/02-models.md
+- .AI-docs/django-rules/common/03-selectors.md
+- .AI-docs/django-rules/common/04-services.md
+- .AI-docs/django-rules/common/05-urls.md
+- .AI-docs/django-rules/common/06-migrations.md
+- .AI-docs/django-rules/common/07-admin.md
+- .AI-docs/django-rules/common/08-signals.md
+- .AI-docs/django-rules/common/09-middleware.md
+- .AI-docs/django-rules/common/10-commands.md
+- .AI-docs/django-rules/common/11-task.md
+- .AI-docs/django-rules/common/12-deployment.md
 
 **DRF:**
-- .AI-docs/rules-drf-django/django-rules/drf/01-viewsets.md
-- .AI-docs/rules-drf-django/django-rules/drf/02-serializers.md
-- .AI-docs/rules-drf-django/django-rules/drf/03-pagination.md
-- .AI-docs/rules-drf-django/django-rules/drf/04-filtering.md
-- .AI-docs/rules-drf-django/django-rules/drf/05-versioning.md
-- .AI-docs/rules-drf-django/django-rules/drf/06-exceptions.md
+- .AI-docs/django-rules/drf/01-viewsets.md
+- .AI-docs/django-rules/drf/02-serializers.md
+- .AI-docs/django-rules/drf/03-pagination.md
+- .AI-docs/django-rules/drf/04-filtering.md
+- .AI-docs/django-rules/drf/05-versioning.md
+- .AI-docs/django-rules/drf/06-exceptions.md
 
 **Безопасность:**
-- .AI-docs/rules-drf-django/django-rules/security/01-authentication.md
-- .AI-docs/rules-drf-django/django-rules/security/02-permissions.md
-- .AI-docs/rules-drf-django/django-rules/security/03-validation.md
-- .AI-docs/rules-drf-django/django-rules/security/04-vulnerabilities.md
-- .AI-docs/rules-drf-django/django-rules/security/05-secrets.md
-- .AI-docs/rules-drf-django/django-rules/security/06-throttling.md
+- .AI-docs/django-rules/security/01-authentication.md
+- .AI-docs/django-rules/security/02-permissions.md
+- .AI-docs/django-rules/security/03-validation.md
+- .AI-docs/django-rules/security/04-vulnerabilities.md
+- .AI-docs/django-rules/security/05-secrets.md
+- .AI-docs/django-rules/security/06-throttling.md
 
 **Оптимизация:**
-- .AI-docs/rules-drf-django/django-rules/optimization/01-database-queries.md
-- .AI-docs/rules-drf-django/django-rules/optimization/02-caching.md
-- .AI-docs/rules-drf-django/django-rules/optimization/03-indexes.md
-- .AI-docs/rules-drf-django/django-rules/optimization/04-celery.md
+- .AI-docs/django-rules/optimization/01-database-queries.md
+- .AI-docs/django-rules/optimization/02-caching.md
+- .AI-docs/django-rules/optimization/03-indexes.md
+- .AI-docs/django-rules/optimization/04-celery.md
 
 **Качество:**
-- .AI-docs/rules-drf-django/django-rules/quality/01-testing.md
-- .AI-docs/rules-drf-django/django-rules/quality/02-code-style.md
-- .AI-docs/rules-drf-django/django-rules/quality/03-documentation.md
-- .AI-docs/rules-drf-django/django-rules/quality/04-logging.md
-- .AI-docs/rules-drf-django/django-rules/quality/05-error-handling.md
+- .AI-docs/django-rules/quality/01-testing.md
+- .AI-docs/django-rules/quality/02-code-style.md
+- .AI-docs/django-rules/quality/03-documentation.md
+- .AI-docs/django-rules/quality/04-logging.md
+- .AI-docs/django-rules/quality/05-error-handling.md

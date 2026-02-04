@@ -1,16 +1,30 @@
+from django.core.cache import cache
 from django.db.models import Count, Q, QuerySet
 
 from apps.users.models import User
+from core.cache import (
+    CACHE_NONE_SENTINEL,
+    CacheKeys,
+    CacheTTL,
+)
 from core.exceptions import NotFoundError
 
 from .models import Project, ProjectMember
 
 
 def get_by_id(project_id: int) -> Project:
+    cache_key = CacheKeys.PROJECT_BY_ID.format(project_id=project_id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     try:
-        return Project.objects.select_related('owner').get(id=project_id)
+        project = Project.objects.select_related('owner').get(id=project_id)
     except Project.DoesNotExist:
         raise NotFoundError('Проект не найден')
+
+    cache.set(cache_key, project, CacheTTL.PROJECT)
+    return project
 
 
 def get_by_id_with_members(project_id: int) -> Project:
@@ -63,11 +77,18 @@ def get_member(project: Project, user: User) -> ProjectMember:
 
 
 def get_member_role(project: Project, user: User) -> str | None:
-    membership = ProjectMember.objects.filter(
+    cache_key = CacheKeys.MEMBER_ROLE.format(project_id=project.id, user_id=user.id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return None if cached == CACHE_NONE_SENTINEL else cached
+
+    role = ProjectMember.objects.filter(
         project=project,
         user=user,
     ).values_list('role', flat=True).first()
-    return membership
+
+    cache.set(cache_key, role if role is not None else CACHE_NONE_SENTINEL, CacheTTL.MEMBERSHIP)
+    return role
 
 
 def filter_members(project: Project) -> QuerySet[ProjectMember]:
@@ -77,18 +98,34 @@ def filter_members(project: Project) -> QuerySet[ProjectMember]:
 
 
 def exists_member(project: Project, user: User) -> bool:
-    return ProjectMember.objects.filter(
+    cache_key = CacheKeys.EXISTS_MEMBER.format(project_id=project.id, user_id=user.id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    exists = ProjectMember.objects.filter(
         project=project,
         user=user,
     ).exists()
 
+    cache.set(cache_key, exists, CacheTTL.MEMBERSHIP)
+    return exists
+
 
 def is_admin_or_owner(project: Project, user: User) -> bool:
-    return ProjectMember.objects.filter(
+    cache_key = CacheKeys.IS_ADMIN_OR_OWNER.format(project_id=project.id, user_id=user.id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    is_admin = ProjectMember.objects.filter(
         project=project,
         user=user,
         role__in=[ProjectMember.Role.OWNER, ProjectMember.Role.ADMIN],
     ).exists()
+
+    cache.set(cache_key, is_admin, CacheTTL.MEMBERSHIP)
+    return is_admin
 
 
 def get_project_with_task_stats(project_id: int) -> Project:
