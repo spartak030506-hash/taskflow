@@ -1,30 +1,66 @@
-from django.core.cache import cache
+import logging
+
 from django.db.models import Count, Q, QuerySet
 
 from apps.users.models import User
 from core.cache import (
+    CACHE_FALSE_SENTINEL,
     CACHE_NONE_SENTINEL,
     CacheKeys,
     CacheTTL,
+    cache_with_lock,
+    safe_cache_get,
+    safe_cache_set,
 )
 from core.exceptions import NotFoundError
 
 from .models import Project, ProjectMember
 
+logger = logging.getLogger(__name__)
+
 
 def get_by_id(project_id: int) -> Project:
-    cache_key = CacheKeys.PROJECT_BY_ID.format(project_id=project_id)
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
-
     try:
-        project = Project.objects.select_related('owner').get(id=project_id)
+        return Project.objects.select_related('owner').get(id=project_id)
     except Project.DoesNotExist:
         raise NotFoundError('Проект не найден')
 
-    cache.set(cache_key, project, CacheTTL.PROJECT)
-    return project
+
+def get_detail(project_id: int) -> dict:
+    cache_key = CacheKeys.PROJECT_DETAIL.format(project_id=project_id)
+
+    def fetch_project():
+        try:
+            project = Project.objects.select_related('owner').annotate(
+                members_count=Count('members')
+            ).get(id=project_id)
+        except Project.DoesNotExist:
+            safe_cache_set(cache_key, CACHE_NONE_SENTINEL, CacheTTL.NOT_FOUND)
+            raise NotFoundError('Проект не найден')
+
+        return {
+            'id': project.id,
+            'name': project.name,
+            'description': project.description,
+            'status': project.status,
+            'owner': {
+                'id': project.owner.id,
+                'email': project.owner.email,
+                'first_name': project.owner.first_name,
+                'last_name': project.owner.last_name,
+                'avatar': project.owner.avatar.url if project.owner.avatar else None,
+            },
+            'members_count': project.members_count,
+            'created_at': project.created_at.isoformat(),
+            'updated_at': project.updated_at.isoformat(),
+        }
+
+    result = cache_with_lock(cache_key, CacheTTL.PROJECT, fetch_project)
+
+    if result == CACHE_NONE_SENTINEL:
+        raise NotFoundError('Проект не найден')
+
+    return result
 
 
 def get_by_id_with_members(project_id: int) -> Project:
@@ -78,16 +114,24 @@ def get_member(project: Project, user: User) -> ProjectMember:
 
 def get_member_role(project: Project, user: User) -> str | None:
     cache_key = CacheKeys.MEMBER_ROLE.format(project_id=project.id, user_id=user.id)
-    cached = cache.get(cache_key)
+
+    cached = safe_cache_get(cache_key)
+
+    if cached == CACHE_NONE_SENTINEL:
+        return None
+
     if cached is not None:
-        return None if cached == CACHE_NONE_SENTINEL else cached
+        return cached
 
     role = ProjectMember.objects.filter(
         project=project,
         user=user,
     ).values_list('role', flat=True).first()
 
-    cache.set(cache_key, role if role is not None else CACHE_NONE_SENTINEL, CacheTTL.MEMBERSHIP)
+    ttl = CacheTTL.MEMBERSHIP if role is not None else CacheTTL.NOT_FOUND
+    cache_value = role if role is not None else CACHE_NONE_SENTINEL
+
+    safe_cache_set(cache_key, cache_value, ttl)
     return role
 
 
@@ -99,7 +143,12 @@ def filter_members(project: Project) -> QuerySet[ProjectMember]:
 
 def exists_member(project: Project, user: User) -> bool:
     cache_key = CacheKeys.EXISTS_MEMBER.format(project_id=project.id, user_id=user.id)
-    cached = cache.get(cache_key)
+
+    cached = safe_cache_get(cache_key)
+
+    if cached == CACHE_FALSE_SENTINEL:
+        return False
+
     if cached is not None:
         return cached
 
@@ -108,13 +157,21 @@ def exists_member(project: Project, user: User) -> bool:
         user=user,
     ).exists()
 
-    cache.set(cache_key, exists, CacheTTL.MEMBERSHIP)
+    ttl = CacheTTL.MEMBERSHIP if exists else CacheTTL.NOT_FOUND
+    cache_value = exists if exists else CACHE_FALSE_SENTINEL
+
+    safe_cache_set(cache_key, cache_value, ttl)
     return exists
 
 
 def is_admin_or_owner(project: Project, user: User) -> bool:
     cache_key = CacheKeys.IS_ADMIN_OR_OWNER.format(project_id=project.id, user_id=user.id)
-    cached = cache.get(cache_key)
+
+    cached = safe_cache_get(cache_key)
+
+    if cached == CACHE_FALSE_SENTINEL:
+        return False
+
     if cached is not None:
         return cached
 
@@ -124,7 +181,10 @@ def is_admin_or_owner(project: Project, user: User) -> bool:
         role__in=[ProjectMember.Role.OWNER, ProjectMember.Role.ADMIN],
     ).exists()
 
-    cache.set(cache_key, is_admin, CacheTTL.MEMBERSHIP)
+    ttl = CacheTTL.MEMBERSHIP if is_admin else CacheTTL.NOT_FOUND
+    cache_value = is_admin if is_admin else CACHE_FALSE_SENTINEL
+
+    safe_cache_set(cache_key, cache_value, ttl)
     return is_admin
 
 

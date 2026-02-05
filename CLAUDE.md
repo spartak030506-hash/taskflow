@@ -9,9 +9,9 @@ TaskFlow — REST API платформа для управления проек�
 ## Быстрый старт
 
 ```bash
-docker-compose up -d
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
+docker compose up -d
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
 ```
 
 API: `http://localhost:8000/api/v1/`
@@ -88,12 +88,19 @@ apps/<app>/
 ├── admin.py               # Django admin
 ├── apps.py
 │
-└── api/                   # API-слой
-    ├── __init__.py        # Реэкспорты для удобства
-    ├── views.py           # ViewSets, APIView
-    ├── serializers.py     # DRF сериализаторы
-    ├── permissions.py     # DRF permissions
-    └── urls.py            # URL маршруты
+├── api/                   # API-слой
+│   ├── __init__.py        # Реэкспорты для удобства
+│   ├── views.py           # ViewSets, APIView
+│   ├── serializers.py     # DRF сериализаторы
+│   ├── permissions.py     # DRF permissions
+│   └── urls.py            # URL маршруты
+│
+└── tests/                 # Тесты
+    ├── __init__.py
+    ├── conftest.py        # Локальные фикстуры
+    ├── factories.py       # Factory Boy
+    ├── test_services.py   # Тесты сервисов
+    └── test_api.py        # Тесты API
 ```
 
 **Правила импортов:**
@@ -134,21 +141,21 @@ apps/<app>/
 
 ```bash
 # Docker
-docker-compose up -d
-docker-compose down
-docker-compose logs -f web
-docker-compose exec web bash
+docker compose up -d
+docker compose down
+docker compose logs -f web
+docker compose exec web bash
 
 # Django
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
-docker-compose exec web python manage.py shell_plus
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
+docker compose exec web python manage.py shell_plus
 
 # Тесты
-docker-compose exec web pytest
-docker-compose exec web pytest apps/users/ -v
-docker-compose exec web pytest apps/users/tests/test_services.py::TestUserService::test_create -v
-docker-compose exec web pytest --cov=apps
+docker compose exec web pytest
+docker compose exec web pytest apps/users/ -v
+docker compose exec web pytest apps/users/tests/test_services.py::TestCreateUser::test_create_user_success -v
+docker compose exec web pytest --cov=apps
 
 # Локальная установка
 pip install -e ".[dev]"
@@ -435,11 +442,80 @@ def update_project(*, project: Project, name: str) -> Project:
 
 Читай: [.AI-docs/django-rules/quality/01-testing.md](.AI-docs/django-rules/quality/01-testing.md)
 
-Ключевое:
-- Factory Boy для создания объектов
-- `@pytest.mark.django_db` для тестов с БД
-- `CaptureQueriesContext` для проверки количества запросов
-- `freezegun` для тестов с временем
+#### Структура тестов
+
+```
+apps/<app>/tests/
+├── __init__.py
+├── conftest.py       # Локальные фикстуры приложения
+├── factories.py      # Factory Boy фабрики
+├── test_services.py  # Тесты сервисов
+└── test_api.py       # Тесты API эндпоинтов
+```
+
+Глобальные фикстуры (`api_client`, `user`, `authenticated_client`) — в корневом `conftest.py`.
+
+#### Паттерны тестирования
+
+**Factory Boy:**
+```python
+class UserFactory(DjangoModelFactory):
+    class Meta:
+        model = User
+        skip_postgeneration_save = True  # Обязательно для избежания DeprecationWarning
+
+    email = factory.Sequence(lambda n: f'user{n}@example.com')
+
+    @factory.post_generation
+    def password(self, create, extracted, **kwargs):
+        self.set_password(extracted or 'testpass123')
+        if create:
+            self.save(update_fields=['password'])
+```
+
+**Тесты с `transaction.on_commit()` (Celery задачи, инвалидация кеша):**
+```python
+@pytest.mark.django_db(transaction=True)  # Обязательно transaction=True!
+def test_create_sends_email(self):
+    with patch('apps.users.services.send_email.delay') as mock_email:
+        services.create_user(...)
+    mock_email.assert_called_once()
+```
+
+**API тесты с пустыми списками:**
+```python
+# При отправке пустого списка используй format='json'
+response = api_client.post(url, {'tag_ids': []}, format='json')
+```
+
+**Пагинированные ответы:**
+```python
+# API возвращает {'count': N, 'results': [...], 'next': ..., 'previous': ...}
+assert response.data['count'] == 3
+assert len(response.data['results']) == 3
+```
+
+**Freezegun для тестов с временем:**
+```python
+from freezegun import freeze_time
+
+@freeze_time("2024-01-15 12:00:00")
+def test_expired_token(self):
+    token = TokenFactory(expires_at=timezone.now() - timedelta(hours=1))
+    with pytest.raises(ValidationError):
+        services.verify_token(token=token.token)
+```
+
+**Параметризация ролей:**
+```python
+@pytest.mark.parametrize('role,expected_status', [
+    (ProjectMember.Role.OWNER, 200),
+    (ProjectMember.Role.ADMIN, 200),
+    (ProjectMember.Role.MEMBER, 403),
+])
+def test_permissions(self, role, expected_status, api_client):
+    ...
+```
 
 ## Полный список документации
 

@@ -72,28 +72,22 @@ class ProjectViewSet(viewsets.GenericViewSet):
             owner=request.user,
             **serializer.validated_data,
         )
-        project = selectors.get_by_id(project.id)
-        return Response(
-            ProjectDetailSerializer(project).data,
-            status=status.HTTP_201_CREATED,
-        )
+        data = selectors.get_detail(project.id)
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, pk=None):
         project = self.get_object()
-        serializer = ProjectDetailSerializer(project)
-        return Response(serializer.data)
+        data = selectors.get_detail(project.id)
+        return Response(data)
 
     def partial_update(self, request, pk=None):
         project = self.get_object()
         serializer = ProjectUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        services.update_project(
-            project=project,
-            **serializer.validated_data,
-        )
-        project = selectors.get_by_id(project.id)
-        return Response(ProjectDetailSerializer(project).data)
+        services.update_project(project=project, **serializer.validated_data)
+        data = selectors.get_detail(project.id)
+        return Response(data)
 
     def destroy(self, request, pk=None):
         project = self.get_object()
@@ -104,8 +98,8 @@ class ProjectViewSet(viewsets.GenericViewSet):
     def archive(self, request, pk=None):
         project = self.get_object()
         services.archive_project(project=project)
-        project = selectors.get_by_id(project.id)
-        return Response(ProjectDetailSerializer(project).data)
+        data = selectors.get_detail(project.id)
+        return Response(data)
 
     @action(detail=True, methods=['get'])
     def members(self, request, pk=None):

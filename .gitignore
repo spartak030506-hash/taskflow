@@ -57,3 +57,4 @@ staticfiles/
 
 rules-drf-django/
 .AI-docs/
+.claude/
