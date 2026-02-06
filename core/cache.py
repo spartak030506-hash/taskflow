@@ -43,53 +43,58 @@ def safe_cache_set(key: str, value, ttl: int) -> bool:
         return False
 
 
-def cache_with_lock(key: str, ttl: int, fetch_func, lock_ttl: int = 10):
-    import random
+import random
+import time
 
+from django.core.cache import cache
+
+from core.cache import CACHE_FALSE_SENTINEL, CACHE_NONE_SENTINEL, safe_cache_get, safe_cache_set
+
+
+def cache_with_lock(key: str, ttl: int, fetch_func, lock_ttl: int = 10):
     cached = safe_cache_get(key)
 
-    # 1. Обработка sentinel-значений (не возвращаем их как данные)
-    if cached == CACHE_NONE_SENTINEL or cached == CACHE_FALSE_SENTINEL:
+    if cached in (CACHE_NONE_SENTINEL, CACHE_FALSE_SENTINEL):
         return cached
-
     if cached is not None:
         return cached
 
-    lock_key = f'{key}:lock'
+    lock_key = f"{key}:lock"
 
     try:
-        lock_acquired = cache.add(lock_key, 'locked', lock_ttl)
-    except ConnectionError:
+        lock_acquired = cache.add(lock_key, "locked", lock_ttl)
+    except Exception:
         lock_acquired = False
+
+    jitter_max = max(1, ttl // 10)
 
     if lock_acquired:
         try:
             value = fetch_func()
-            # 3. Добавляем jitter к TTL (защита от одновременного истечения)
-            jitter = random.randint(0, ttl // 10)
+            jitter = random.randint(0, jitter_max)
             safe_cache_set(key, value, ttl + jitter)
             return value
         finally:
             try:
                 cache.delete(lock_key)
-            except ConnectionError:
+            except Exception:
                 pass
-    else:
-        # Ждём пока держатель лока сгенерирует данные
-        for _ in range(20):
-            time.sleep(0.05)
-            cached = safe_cache_get(key)
-            # Обработка sentinel-значений в цикле ожидания
-            if cached == CACHE_NONE_SENTINEL or cached == CACHE_FALSE_SENTINEL:
-                return cached
-            if cached is not None:
-                return cached
 
-        # 2. Таймаут ожидания — генерируем И кэшируем сами
-        value = fetch_func()
-        jitter = random.randint(0, ttl // 10)
-        safe_cache_set(key, value, ttl + jitter)
-        return value
+    for _ in range(20):
+        time.sleep(0.05)
+        cached = safe_cache_get(key)
+
+        if cached in (CACHE_NONE_SENTINEL, CACHE_FALSE_SENTINEL):
+            return cached
+        if cached is not None:
+            return cached
+
+    # не дождались — сами генерим и всё равно кэшируем
+    value = fetch_func()
+    jitter = random.randint(0, jitter_max)
+    safe_cache_set(key, value, ttl + jitter)
+    return value
+
 
 
 def invalidate_project_cache(project_id: int) -> None:
