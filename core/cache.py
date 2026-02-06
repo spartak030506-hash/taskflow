@@ -1,5 +1,6 @@
 import logging
 import time
+import random
 
 from django.core.cache import cache
 from redis.exceptions import ConnectionError
@@ -41,14 +42,6 @@ def safe_cache_set(key: str, value, ttl: int) -> bool:
     except ConnectionError:
         logger.warning('Redis unavailable on set', extra={'key': key})
         return False
-
-
-import random
-import time
-
-from django.core.cache import cache
-
-from core.cache import CACHE_FALSE_SENTINEL, CACHE_NONE_SENTINEL, safe_cache_get, safe_cache_set
 
 
 def cache_with_lock(key: str, ttl: int, fetch_func, lock_ttl: int = 10):
@@ -94,7 +87,6 @@ def cache_with_lock(key: str, ttl: int, fetch_func, lock_ttl: int = 10):
     jitter = random.randint(0, jitter_max)
     safe_cache_set(key, value, ttl + jitter)
     return value
-
 
 
 def invalidate_project_cache(project_id: int) -> None:
