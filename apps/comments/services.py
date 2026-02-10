@@ -41,6 +41,11 @@ def create_comment(
             )
         )
 
+    def _broadcast():
+        from apps.websocket.tasks import broadcast_comment_created
+        broadcast_comment_created.delay(_comment_id, _author_id)
+    transaction.on_commit(_broadcast)
+
     return comment
 
 
@@ -49,13 +54,36 @@ def update_comment(
     *,
     comment: Comment,
     content: str,
+    updated_by: User | None = None,
 ) -> Comment:
     comment.content = content
     comment.is_edited = True
     comment.save(update_fields=['content', 'is_edited', 'updated_at'])
+
+    if updated_by:
+        _comment_id = comment.id
+        _user_id = updated_by.id
+        def _broadcast():
+            from apps.websocket.tasks import broadcast_comment_updated
+            broadcast_comment_updated.delay(_comment_id, _user_id)
+        transaction.on_commit(_broadcast)
+
     return comment
 
 
 @transaction.atomic
-def delete_comment(*, comment: Comment) -> None:
+def delete_comment(*, comment: Comment, deleted_by: User | None = None) -> None:
+    _comment_id = comment.id
+    _task_id = comment.task_id
+    _project_id = comment.task.project_id
+
     comment.delete()
+
+    if deleted_by:
+        _user_id = deleted_by.id
+        def _broadcast():
+            from apps.websocket.tasks import broadcast_comment_deleted
+            broadcast_comment_deleted.delay(
+                _comment_id, _task_id, _project_id, _user_id
+            )
+        transaction.on_commit(_broadcast)

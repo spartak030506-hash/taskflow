@@ -61,9 +61,13 @@ taskflow-drf/
 │   ├── projects/           # ✅ Реализовано (аналогичная структура)
 │   ├── tasks/              # ✅ Реализовано (аналогичная структура)
 │   ├── tags/               # ✅ Реализовано (аналогичная структура)
-│   └── comments/           # ✅ Реализовано (аналогичная структура)
+│   ├── comments/           # ✅ Реализовано (аналогичная структура)
+│   └── websocket/          # ✅ Реализовано (WebSocket для real-time)
 ├── core/                   # Общий код
 │   ├── cache.py            # CacheKeys, CacheTTL, функции инвалидации
+│   ├── event_types.py      # TaskEvents, CommentEvents (WebSocket)
+│   ├── websocket.py        # send_to_project_group, WebSocketError
+│   ├── middleware.py       # JWTAuthMiddleware для WebSocket
 │   ├── exceptions.py       # BaseServiceError, NotFoundError, PermissionDeniedError, ValidationError, ConflictError
 │   ├── mixins.py           # TimestampMixin (created_at, updated_at)
 │   └── pagination.py       # StandardPagination
@@ -135,6 +139,7 @@ apps/<app>/
 - `tasks/` — реализовано
 - `tags/` — реализовано
 - `comments/` — реализовано
+- `websocket/` — реализовано
 - `attachments/`, `notifications/`, `activity/` — планируется
 
 ## Команды
@@ -324,6 +329,41 @@ def register_user(email: str) -> User:
 - Контент: 1-10000 символов
 - При редактировании устанавливается флаг `is_edited=True`
 
+### apps/websocket
+
+WebSocket для real-time обновлений задач и комментариев.
+
+**WebSocket URL:** `ws://localhost:8000/ws/projects/{project_id}/?token=JWT_TOKEN`
+
+**События:**
+- Tasks: `task.created`, `task.updated`, `task.deleted`, `task.status_changed`, `task.assigned`, `task.reordered`, `task.tags_changed`
+- Comments: `comment.created`, `comment.updated`, `comment.deleted`
+
+**Архитектура:**
+- JWT аутентификация через query params
+- Проверка membership при подключении
+- Broadcasting через Redis channel layer
+- Celery задачи для асинхронной отправки событий
+
+**Формат события:**
+```json
+{
+  "type": "task.created",
+  "data": {
+    "event_type": "task.created",
+    "timestamp": "2024-01-15T12:00:00Z",
+    "user": {"id": 1, "email": "user@example.com"},
+    "data": {...}
+  }
+}
+```
+
+**Важно:**
+- Все операции (create/update/delete) через REST API
+- WebSocket только для broadcast событий
+- Graceful degradation при падении Redis
+- Отложенный импорт broadcast функций в сервисах для избежания циклических импортов
+
 ## Документация по слоям
 
 **ВАЖНО**: Перед написанием кода ОБЯЗАТЕЛЬНО прочитай соответствующий файл документации.
@@ -401,30 +441,112 @@ def register_user(email: str) -> User:
 
 Читай: [.AI-docs/django-rules/optimization/02-caching.md](.AI-docs/django-rules/optimization/02-caching.md)
 
-Ключевое:
-- Ключи и TTL в `core/cache.py` (`CacheKeys`, `CacheTTL`)
-- `CACHE_NONE_SENTINEL` для различия "нет в кеше" и "значение None"
-- Инвалидация через `transaction.on_commit()` в сервисах
-- `cache.delete_many()` для удаления нескольких ключей
-- НЕ кешировать `select_for_update()` селекторы
+**ОБЯЗАТЕЛЬНО использовать обёртки из `core/cache.py`:**
 
-Пример кеширования в селекторе:
+```python
+from core.cache import safe_cache_get, safe_cache_set, cache_with_lock
+```
+
+❌ **НИКОГДА не использовать напрямую:**
 ```python
 from django.core.cache import cache
-from core.cache import CacheKeys, CacheTTL
+cache.get(key)  # ❌ НЕТ!
+cache.set(key, value, ttl)  # ❌ НЕТ!
+```
 
-def get_by_id(project_id: int) -> Project:
-    cache_key = CacheKeys.PROJECT_BY_ID.format(project_id=project_id)
-    cached = cache.get(cache_key)
+**Критические правила:**
+
+1. **Кэшировать только dict/list, НЕ ORM-объекты**
+2. **Обязательные обёртки:** `safe_cache_get()`, `safe_cache_set()`, `cache_with_lock()`
+3. **Порядок проверки sentinel:** СНАЧАЛА sentinel, ПОТОМ `is not None`
+4. **Версионирование ключей:** все ключи с `v1:` префиксом
+
+**Паттерн кэширования для горячих ключей (detail страницы):**
+
+```python
+from core.cache import cache_with_lock, CACHE_NONE_SENTINEL, CacheKeys, CacheTTL
+
+def get_detail(project_id: int) -> dict:
+    """Возвращает dict для API response (кэшируется)."""
+    cache_key = CacheKeys.PROJECT_DETAIL.format(project_id=project_id)
+
+    def fetch_project():
+        try:
+            project = Project.objects.select_related('owner').get(id=project_id)
+        except Project.DoesNotExist:
+            safe_cache_set(cache_key, CACHE_NONE_SENTINEL, CacheTTL.NOT_FOUND)
+            raise NotFoundError('Проект не найден')
+
+        return {
+            'id': project.id,
+            'name': project.name,
+            'owner': {'id': project.owner.id, 'email': project.owner.email},
+        }
+
+    result = cache_with_lock(cache_key, CacheTTL.PROJECT, fetch_project)
+
+    if result == CACHE_NONE_SENTINEL:
+        raise NotFoundError('Проект не найден')
+
+    return result
+```
+
+**Паттерн для Optional[str] (роль может быть None):**
+
+```python
+from core.cache import safe_cache_get, safe_cache_set, CACHE_NONE_SENTINEL
+
+def get_member_role(project: Project, user: User) -> str | None:
+    cache_key = CacheKeys.MEMBER_ROLE.format(project_id=project.id, user_id=user.id)
+
+    cached = safe_cache_get(cache_key)
+
+    # 1. СНАЧАЛА проверяем sentinel
+    if cached == CACHE_NONE_SENTINEL:
+        return None
+
+    # 2. ПОТОМ проверяем наличие
     if cached is not None:
         return cached
 
-    project = Project.objects.select_related('owner').get(id=project_id)
-    cache.set(cache_key, project, CacheTTL.PROJECT)
-    return project
+    role = ProjectMember.objects.filter(...).values_list('role', flat=True).first()
+
+    ttl = CacheTTL.MEMBERSHIP if role is not None else CacheTTL.NOT_FOUND
+    cache_value = role if role is not None else CACHE_NONE_SENTINEL
+    safe_cache_set(cache_key, cache_value, ttl)
+
+    return role
 ```
 
-Пример инвалидации в сервисе:
+**Паттерн для bool:**
+
+```python
+from core.cache import safe_cache_get, safe_cache_set, CACHE_FALSE_SENTINEL
+
+def is_admin(project: Project, user: User) -> bool:
+    cache_key = CacheKeys.IS_ADMIN_OR_OWNER.format(project_id=project.id, user_id=user.id)
+
+    cached = safe_cache_get(cache_key)
+
+    # 1. СНАЧАЛА проверяем sentinel
+    if cached == CACHE_FALSE_SENTINEL:
+        return False
+
+    # 2. ПОТОМ проверяем наличие
+    if cached is not None:
+        return cached
+
+    is_admin = ProjectMember.objects.filter(...).exists()
+
+    ttl = CacheTTL.MEMBERSHIP if is_admin else CacheTTL.NOT_FOUND
+    cache_value = is_admin if is_admin else CACHE_FALSE_SENTINEL
+    safe_cache_set(cache_key, cache_value, ttl)
+
+    return is_admin
+```
+
+**Инвалидация в сервисе:**
+
 ```python
 from core.cache import invalidate_project_cache
 
@@ -437,6 +559,13 @@ def update_project(*, project: Project, name: str) -> Project:
     transaction.on_commit(lambda: invalidate_project_cache(_project_id))
     return project
 ```
+
+**Ключевые константы в `core/cache.py`:**
+
+- `CACHE_NONE_SENTINEL` — для `Optional[T]` (отличает None от "не в кэше")
+- `CACHE_FALSE_SENTINEL` — для `bool` (отличает False от "не в кэше")
+- `CacheTTL.NOT_FOUND = 60` — короткий TTL для негативного кэширования
+- `CACHE_VERSION = 'v1'` — версионирование ключей
 
 ### При написании тестов
 

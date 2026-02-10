@@ -2,6 +2,7 @@ from django.db import transaction
 
 from apps.projects.models import Project
 from apps.tasks.models import Task
+from apps.users.models import User
 from core.exceptions import ConflictError, ValidationError
 
 from . import selectors
@@ -55,22 +56,30 @@ def delete_tag(*, tag: Tag) -> None:
 
 
 @transaction.atomic
-def set_task_tags(*, task: Task, tag_ids: list[int]) -> Task:
+def set_task_tags(*, task: Task, tag_ids: list[int], updated_by: User | None = None) -> Task:
     if not tag_ids:
         task.tags.clear()
-        return task
+    else:
+        unique_tag_ids = list(set(tag_ids))
+        tags = list(selectors.filter_by_ids(unique_tag_ids))
 
-    unique_tag_ids = list(set(tag_ids))
-    tags = list(selectors.filter_by_ids(unique_tag_ids))
+        if len(tags) != len(unique_tag_ids):
+            found_ids = {tag.id for tag in tags}
+            missing_ids = set(unique_tag_ids) - found_ids
+            raise ValidationError(f'Теги не найдены: {missing_ids}')
 
-    if len(tags) != len(unique_tag_ids):
-        found_ids = {tag.id for tag in tags}
-        missing_ids = set(unique_tag_ids) - found_ids
-        raise ValidationError(f'Теги не найдены: {missing_ids}')
+        for tag in tags:
+            if tag.project_id != task.project_id:
+                raise ValidationError('Некоторые теги не принадлежат проекту задачи')
 
-    for tag in tags:
-        if tag.project_id != task.project_id:
-            raise ValidationError('Некоторые теги не принадлежат проекту задачи')
+        task.tags.set(tags)
 
-    task.tags.set(tags)
+    if updated_by:
+        _task_id = task.id
+        _user_id = updated_by.id
+        def _broadcast():
+            from apps.websocket.tasks import broadcast_task_tags_changed
+            broadcast_task_tags_changed.delay(_task_id, _user_id)
+        transaction.on_commit(_broadcast)
+
     return task

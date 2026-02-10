@@ -146,13 +146,13 @@ class TaskViewSet(viewsets.GenericViewSet):
         serializer = TaskUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        services.update_task(task=task, **serializer.validated_data)
+        services.update_task(task=task, updated_by=request.user, **serializer.validated_data)
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
 
     def destroy(self, request, project_pk=None, pk=None):
         task = self.get_object()
-        services.delete_task(task=task)
+        services.delete_task(task=task, deleted_by=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'], url_path='status')
@@ -164,6 +164,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         services.change_status(
             task=task,
             new_status=serializer.validated_data['status'],
+            updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
@@ -184,6 +185,7 @@ class TaskViewSet(viewsets.GenericViewSet):
             task=task,
             assignee=assignee,
             project_name=project.name,
+            updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
@@ -197,6 +199,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         services.reorder_task(
             task=task,
             new_position=serializer.validated_data['position'],
+            updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
@@ -210,6 +213,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         tag_services.set_task_tags(
             task=task,
             tag_ids=serializer.validated_data['tag_ids'],
+            updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)

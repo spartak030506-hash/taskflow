@@ -115,11 +115,12 @@ class CommentViewSet(viewsets.GenericViewSet):
         services.update_comment(
             comment=comment,
             content=serializer.validated_data['content'],
+            updated_by=request.user,
         )
         comment = selectors.get_by_id(comment.id)
         return Response(CommentDetailSerializer(comment).data)
 
     def destroy(self, request, project_pk=None, task_pk=None, pk=None):
         comment = self.get_object()
-        services.delete_comment(comment=comment)
+        services.delete_comment(comment=comment, deleted_by=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -28,13 +28,14 @@ INSTALLED_APPS = [
     'django_filters',                           # Фильтрация в API
     'corsheaders',                              # CORS для фронтенда
     'drf_spectacular',                          # OpenAPI документация
-    'channels',                                 # WebSocket
+    'channels',
     # Local
     'apps.users',
     'apps.projects',
     'apps.tasks',
     'apps.tags',
     'apps.comments',
+    'apps.websocket',
 ]
 
 AUTH_USER_MODEL = 'users.User'
