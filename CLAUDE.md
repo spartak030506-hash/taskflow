@@ -16,6 +16,26 @@ docker compose exec web python manage.py createsuperuser
 
 API: `http://localhost:8000/api/v1/`
 
+## Переменные окружения
+
+Скопировать `.env.example` в `.env` и настроить:
+
+```bash
+cp .env.example .env
+```
+
+**Критичные переменные:**
+- `DJANGO_SETTINGS_MODULE` — модуль настроек (`config.settings.local` для разработки)
+- `SECRET_KEY` — секретный ключ Django
+- `DATABASE_URL` — строка подключения к PostgreSQL
+- `REDIS_URL` — строка подключения к Redis
+- `CELERY_BROKER_URL` — URL брокера Celery
+
+**Настройки:**
+- `config/settings/local.py` — разработка
+- `config/settings/test.py` — тесты
+- `config/settings/production.py` — production
+
 ## Стек
 
 - Python 3.12 + Django 5.1 + DRF 3.15
@@ -64,6 +84,10 @@ taskflow-drf/
 │   ├── comments/           # ✅ Реализовано (аналогичная структура)
 │   └── websocket/          # ✅ Реализовано (WebSocket для real-time)
 ├── core/                   # Общий код
+│   ├── api_docs/           # OpenAPI документация
+│   │   ├── decorators.py   # Декораторы для ViewSets (list_endpoint_schema, create_endpoint_schema, etc.)
+│   │   ├── responses.py    # Типовые OpenApiResponse (ValidationError, NotFound, etc.)
+│   │   └── examples.py     # Примеры ошибок для OpenAPI
 │   ├── cache.py            # CacheKeys, CacheTTL, функции инвалидации
 │   ├── event_types.py      # TaskEvents, CommentEvents (WebSocket)
 │   ├── websocket.py        # send_to_project_group, WebSocketError
@@ -162,8 +186,90 @@ docker compose exec web pytest apps/users/ -v
 docker compose exec web pytest apps/users/tests/test_services.py::TestCreateUser::test_create_user_success -v
 docker compose exec web pytest --cov=apps
 
+# Celery (в отдельных терминалах)
+docker compose exec web celery -A config worker -l info
+docker compose exec web celery -A config beat -l info
+
 # Локальная установка
 pip install -e ".[dev]"
+```
+
+## OpenAPI Документация
+
+**URL:**
+- Swagger UI: `http://localhost:8000/api/docs/`
+- ReDoc: `http://localhost:8000/api/redoc/`
+- Schema: `http://localhost:8000/api/schema/`
+
+**Команды:**
+```bash
+# Проверить валидность schema
+docker compose exec web python manage.py spectacular --validate
+
+# Экспортировать schema
+docker compose exec web python manage.py spectacular --file openapi.yml
+```
+
+**При документировании API:**
+
+Использовать декораторы из `core/api_docs`:
+
+```python
+from core.api_docs import (
+    list_endpoint_schema,
+    create_endpoint_schema,
+    retrieve_endpoint_schema,
+    update_endpoint_schema,
+    delete_endpoint_schema,
+    action_endpoint_schema,
+)
+
+# Для стандартных методов ViewSet
+@list_endpoint_schema(
+    summary="Краткое описание",
+    description="Подробное описание",
+    tags=['имя_приложения'],
+)
+def list(self, request):
+    ...
+
+# Для @action методов
+@action_endpoint_schema(
+    summary="Краткое описание",
+    description="Подробное описание",
+    tags=['имя_приложения'],
+    method='POST',
+    request_examples=[...],
+)
+@action(detail=True, methods=['post'])
+def custom_action(self, request, pk=None):
+    ...
+```
+
+**help_text в сериализаторах:**
+
+```python
+class CreateSerializer(serializers.Serializer):
+    field = serializers.CharField(
+        max_length=255,
+        help_text="Описание поля для OpenAPI schema"
+    )
+```
+
+**ВАЖНО:** help_text автоматически превращается в description в OpenAPI schema.
+
+## Проверка кода
+
+```bash
+# Проверка синтаксиса
+docker compose exec web python -m py_compile apps/**/*.py
+
+# Django system checks
+docker compose exec web python manage.py check
+docker compose exec web python manage.py check --deploy  # Production checks
+
+# OpenAPI schema валидация
+docker compose exec web python manage.py spectacular --validate
 ```
 
 ## Критические правила

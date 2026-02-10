@@ -1,20 +1,35 @@
 import pytest
 from channels.testing import WebsocketCommunicator
-from config.asgi import application
+from channels.routing import URLRouter
 from apps.users.tests.factories import UserFactory
 from apps.projects.tests.factories import ProjectFactory, ProjectMemberFactory
 from apps.projects.models import ProjectMember
+from apps.websocket.routing import websocket_urlpatterns
+from core.middleware import JWTAuthMiddleware
+
+test_application = JWTAuthMiddleware(URLRouter(websocket_urlpatterns))
 
 
 @pytest.fixture
-def ws_communicator(db):
+async def ws_communicator():
+    communicators = []
+
     async def _create(project_id: int, token: str):
+        path = f'/ws/projects/{project_id}/?token={token}'
         communicator = WebsocketCommunicator(
-            application,
-            f'/ws/projects/{project_id}/?token={token}'
+            test_application,
+            path
         )
+        communicators.append(communicator)
         return communicator
-    return _create
+
+    yield _create
+
+    for communicator in communicators:
+        try:
+            await communicator.disconnect()
+        except Exception:
+            pass
 
 
 @pytest.fixture
@@ -25,7 +40,7 @@ def jwt_token(user):
 
 
 @pytest.fixture
-def project_with_member(db):
+def project_with_member():
     project = ProjectFactory()
     member = UserFactory(is_verified=True)
     ProjectMemberFactory(

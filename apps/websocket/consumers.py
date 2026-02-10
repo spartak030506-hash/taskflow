@@ -12,17 +12,20 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         user = self.scope['user']
         if user.is_anonymous:
             logger.warning('WebSocket: anonymous user tried to connect')
+            await self.accept()
             await self.close(code=4001)
             return
 
         self.project_id = self.scope['url_route']['kwargs']['project_id']
         self.group_name = f'project_{self.project_id}'
 
-        is_member = await self._check_project_membership(self.project_id, user.id)
+        check_membership = database_sync_to_async(self._check_project_membership, thread_sensitive=True)
+        is_member = await check_membership(self.project_id, user.id)
         if not is_member:
             logger.warning(
                 f'WebSocket: user {user.id} not member of project {self.project_id}'
             )
+            await self.accept()
             await self.close(code=4003)
             return
 
@@ -51,12 +54,34 @@ class ProjectConsumer(AsyncWebsocketConsumer):
             'data': event['data'],
         }))
 
-    @database_sync_to_async
     def _check_project_membership(self, project_id: int, user_id: int) -> bool:
+        from apps.users.models import User
+        from apps.projects.models import Project
+
         try:
             project = project_selectors.get_by_id(project_id)
-            from apps.users.models import User
             user = User.objects.get(id=user_id)
             return project_selectors.exists_member(project, user)
-        except Exception:
+
+        except (Project.DoesNotExist, User.DoesNotExist) as e:
+            logger.warning(
+                f'WebSocket membership check failed: {type(e).__name__}',
+                extra={
+                    'project_id': project_id,
+                    'user_id': user_id,
+                    'error': str(e)
+                }
+            )
+            return False
+
+        except Exception as e:
+            logger.error(
+                f'WebSocket membership check unexpected error: {type(e).__name__}',
+                extra={
+                    'project_id': project_id,
+                    'user_id': user_id,
+                    'error': str(e)
+                },
+                exc_info=True
+            )
             return False
