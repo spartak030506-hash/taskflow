@@ -32,11 +32,15 @@ class TagDetailSerializer(serializers.ModelSerializer):
 
 
 class TagCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=50, min_length=1)
+    name = serializers.CharField(
+        max_length=50,
+        min_length=1,
+        help_text="Название тега (уникально в рамках проекта)"
+    )
     color = serializers.RegexField(
         regex=r'^#[0-9A-Fa-f]{6}$',
         default='#6B7280',
-        help_text='HEX цвет в формате #RRGGBB',
+        help_text='HEX цвет в формате #RRGGBB (например, #FF5733)',
     )
 
     def validate_name(self, value):
@@ -47,11 +51,16 @@ class TagCreateSerializer(serializers.Serializer):
 
 
 class TagUpdateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=50, min_length=1, required=False)
+    name = serializers.CharField(
+        max_length=50,
+        min_length=1,
+        required=False,
+        help_text="Название тега (уникально в рамках проекта)"
+    )
     color = serializers.RegexField(
         regex=r'^#[0-9A-Fa-f]{6}$',
         required=False,
-        help_text='HEX цвет в формате #RRGGBB',
+        help_text='HEX цвет в формате #RRGGBB (например, #FF5733)',
     )
 
     def validate_name(self, value):

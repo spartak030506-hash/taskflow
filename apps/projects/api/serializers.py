@@ -46,13 +46,29 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 
 class ProjectCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=255)
-    description = serializers.CharField(required=False, allow_blank=True, default='')
+    name = serializers.CharField(
+        max_length=255,
+        help_text="Название проекта"
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='',
+        help_text="Описание проекта"
+    )
 
 
 class ProjectUpdateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=255, required=False)
-    description = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(
+        max_length=255,
+        required=False,
+        help_text="Название проекта"
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Описание проекта"
+    )
 
 
 class ProjectMemberSerializer(serializers.ModelSerializer):
@@ -70,7 +86,10 @@ class ProjectMemberSerializer(serializers.ModelSerializer):
 
 
 class ProjectMemberCreateSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(min_value=1)
+    user_id = serializers.IntegerField(
+        min_value=1,
+        help_text="ID пользователя для добавления в проект"
+    )
     role = serializers.ChoiceField(
         choices=[
             (ProjectMember.Role.ADMIN, 'Администратор'),
@@ -78,6 +97,7 @@ class ProjectMemberCreateSerializer(serializers.Serializer):
             (ProjectMember.Role.VIEWER, 'Наблюдатель'),
         ],
         default=ProjectMember.Role.MEMBER,
+        help_text="Роль участника: admin, member, viewer"
     )
 
 
@@ -88,4 +108,5 @@ class ProjectMemberUpdateSerializer(serializers.Serializer):
             (ProjectMember.Role.MEMBER, 'Участник'),
             (ProjectMember.Role.VIEWER, 'Наблюдатель'),
         ],
+        help_text="Новая роль участника: admin, member, viewer"
     )

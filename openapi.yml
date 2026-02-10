@@ -1,0 +1,3355 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  version: 1.0.0
+  description: "\nREST API платформа для управления проектами и задачами.\n\n## Аутентификация\n\
+    API использует JWT (JSON Web Token):\n1. Получите токены через POST `/api/v1/auth/token/`\n\
+    2. Используйте access токен: `Authorization: Bearer <token>`\n3. Обновите токен\
+    \ через POST `/api/v1/auth/token/refresh/`\n\n## Пагинация\nList эндпоинты возвращают:\n\
+    ```json\n{\n  \"count\": 100,\n  \"next\": \"...\",\n  \"previous\": null,\n \
+    \ \"results\": [...]\n}\n```\n    "
+paths:
+  /api/v1/auth/password-reset/:
+    post:
+      operationId: v1_auth_password_reset_create
+      description: Отправляет письмо с токеном для восстановления пароля.
+      summary: Запрос восстановления пароля
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordResetRequest'
+            examples:
+              RequestPasswordResetRequest:
+                value:
+                  email: user@example.com
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+  /api/v1/auth/password-reset/confirm/:
+    post:
+      operationId: v1_auth_password_reset_confirm_create
+      description: Устанавливает новый пароль используя токен из письма.
+      summary: Сброс пароля
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            examples:
+              ResetPasswordRequest:
+                value:
+                  token: abc123xyz
+                  new_password: newsecure123
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Неверный или истёкший токен
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: v1_auth_register_create
+      description: Создаёт нового пользователя и отправляет письмо для подтверждения
+        email.
+      summary: Регистрация пользователя
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              RegisterRequest:
+                value:
+                  email: user@example.com
+                  password: securepass123
+                  first_name: Иван
+                  last_name: Иванов
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Ошибка валидации
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                description: Email уже зарегистрирован
+          description: ''
+  /api/v1/auth/resend-verification/:
+    post:
+      operationId: v1_auth_resend_verification_create
+      description: Отправляет новое письмо с токеном для подтверждения email.
+      summary: Повторная отправка подтверждения
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/verify-email/:
+    post:
+      operationId: v1_auth_verify_email_create
+      description: Подтверждает email пользователя через токен из письма.
+      summary: Подтверждение email
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+            examples:
+              VerifyEmailRequest:
+                value:
+                  token: abc123xyz
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Неверный или истёкший токен
+          description: ''
+  /api/v1/projects/:
+    get:
+      operationId: v1_projects_retrieve
+      description: Возвращает список проектов пользователя (где он является участником).
+      summary: Список проектов
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+    post:
+      operationId: v1_projects_create
+      description: Создаёт новый проект. Пользователь автоматически становится владельцем
+        (owner).
+      summary: Создать проект
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+            examples:
+              CreateProjectRequest:
+                value:
+                  name: Новый проект
+                  description: Описание проекта
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ConflictError
+                  message:
+                    type: string
+              examples:
+                ConflictError:
+                  value:
+                    error: ConflictError
+                    message: Пользователь с таким email уже существует
+          description: Конфликт данных
+  /api/v1/projects/{id}/:
+    get:
+      operationId: v1_projects_retrieve_2
+      description: Возвращает подробную информацию о проекте.
+      summary: Детали проекта
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    patch:
+      operationId: v1_projects_partial_update
+      description: Обновляет информацию о проекте. Доступно admin и owner.
+      summary: Обновить проект
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+            examples:
+              UpdateProjectRequest:
+                value:
+                  name: Обновлённое название
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    delete:
+      operationId: v1_projects_destroy
+      description: Удаляет проект. Доступно только owner.
+      summary: Удалить проект
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Успешно удалено
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{id}/archive/:
+    post:
+      operationId: v1_projects_archive_create
+      description: Переводит проект в статус 'archived'. Доступно admin и owner.
+      summary: Архивировать проект
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{id}/leave/:
+    post:
+      operationId: v1_projects_leave_create
+      description: Пользователь покидает проект. Владелец не может покинуть проект.
+      summary: Покинуть проект
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{id}/members/:
+    get:
+      operationId: v1_projects_members_retrieve
+      description: Возвращает список всех участников проекта с их ролями.
+      summary: Список участников проекта
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{id}/members/{user_id}/:
+    patch:
+      operationId: v1_projects_members_partial_update
+      description: Изменение роли (PATCH) или удаление участника (DELETE). Доступно
+        admin и owner.
+      summary: Управление участником
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectMemberUpdateRequest'
+            examples:
+              UpdateMemberRoleRequest:
+                value:
+                  role: admin
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectMemberUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectMemberUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMember'
+          description: ''
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Участник удалён
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                description: Пользователь не найден
+          description: ''
+    delete:
+      operationId: v1_projects_members_destroy
+      description: Изменение роли (PATCH) или удаление участника (DELETE). Доступно
+        admin и owner.
+      summary: Управление участником
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      - in: path
+        name: user_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMember'
+          description: ''
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Участник удалён
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                description: Пользователь не найден
+          description: ''
+  /api/v1/projects/{id}/members/add/:
+    post:
+      operationId: v1_projects_members_add_create
+      description: Добавляет нового участника в проект. Доступно admin и owner.
+      summary: Добавить участника
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Проект.
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectMemberCreateRequest'
+            examples:
+              AddMemberRequest:
+                value:
+                  user_id: 2
+                  role: member
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectMemberCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectMemberCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMember'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                description: Пользователь не найден
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                description: Пользователь уже является участником
+          description: ''
+  /api/v1/projects/{project_pk}/tags/:
+    get:
+      operationId: v1_projects_tags_retrieve
+      description: Возвращает список всех тегов проекта.
+      summary: Список тегов проекта
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tags
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+    post:
+      operationId: v1_projects_tags_create
+      description: Создаёт новый тег для проекта. Имя должно быть уникальным в рамках
+        проекта. Доступно admin и owner.
+      summary: Создать тег
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tags
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreateRequest'
+            examples:
+              CreateTagRequest:
+                value:
+                  name: bug
+                  color: '#FF5733'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ConflictError
+                  message:
+                    type: string
+              examples:
+                ConflictError:
+                  value:
+                    error: ConflictError
+                    message: Пользователь с таким email уже существует
+          description: Конфликт данных
+  /api/v1/projects/{project_pk}/tags/{id}/:
+    get:
+      operationId: v1_projects_tags_retrieve_2
+      description: Возвращает подробную информацию о теге.
+      summary: Детали тега
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tags
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    patch:
+      operationId: v1_projects_tags_partial_update
+      description: Обновляет информацию о теге. Доступно admin и owner.
+      summary: Обновить тег
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tags
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTagUpdateRequest'
+            examples:
+              UpdateTagRequest:
+                value:
+                  name: critical-bug
+                  color: '#DC2626'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTagUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTagUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    delete:
+      operationId: v1_projects_tags_destroy
+      description: Удаляет тег. Тег автоматически убирается из всех задач. Доступно
+        admin и owner.
+      summary: Удалить тег
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tags
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Успешно удалено
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/:
+    get:
+      operationId: v1_projects_tasks_retrieve
+      description: Возвращает список задач проекта с фильтрацией по статусу, приоритету
+        и исполнителю.
+      summary: Список задач проекта
+      parameters:
+      - in: query
+        name: assignee_id
+        schema:
+          type: integer
+        description: Фильтр по ID исполнителя
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Фильтр по приоритету (low, medium, high, urgent)
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Фильтр по статусу (pending, in_progress, completed, cancelled)
+      tags:
+      - tasks
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+    post:
+      operationId: v1_projects_tasks_create
+      description: Создаёт новую задачу в проекте. Доступно member, admin, owner (не
+        viewer).
+      summary: Создать задачу
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+            examples:
+              CreateTaskRequest:
+                value:
+                  title: Новая задача
+                  description: Описание задачи
+                  priority: high
+                  deadline: '2024-12-31T23:59:59Z'
+                  assignee_id: 2
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ConflictError
+                  message:
+                    type: string
+              examples:
+                ConflictError:
+                  value:
+                    error: ConflictError
+                    message: Пользователь с таким email уже существует
+          description: Конфликт данных
+  /api/v1/projects/{project_pk}/tasks/{id}/:
+    get:
+      operationId: v1_projects_tasks_retrieve_2
+      description: Возвращает подробную информацию о задаче.
+      summary: Детали задачи
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    patch:
+      operationId: v1_projects_tasks_partial_update
+      description: Обновляет информацию о задаче. Доступно creator, assignee, admin,
+        owner.
+      summary: Обновить задачу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdateRequest'
+            examples:
+              UpdateTaskRequest:
+                value:
+                  title: Обновлённое название
+                  priority: urgent
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    delete:
+      operationId: v1_projects_tasks_destroy
+      description: Удаляет задачу. Доступно creator, admin, owner.
+      summary: Удалить задачу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Успешно удалено
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/{id}/assign/:
+    post:
+      operationId: v1_projects_tasks_assign_create
+      description: Назначает или снимает исполнителя задачи. Доступно creator, assignee,
+        admin, owner.
+      summary: Назначить исполнителя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskAssignRequest'
+            examples:
+              AssignTaskRequest:
+                value:
+                  assignee_id: 2
+              UnassignTaskRequest:
+                value:
+                  assignee_id: null
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskAssignRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskAssignRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/{id}/reorder/:
+    post:
+      operationId: v1_projects_tasks_reorder_create
+      description: Изменяет позицию задачи в списке. Доступно creator, assignee, admin,
+        owner.
+      summary: Изменить позицию задачи
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskReorderRequest'
+            examples:
+              ReorderTaskRequest:
+                value:
+                  position: 0
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskReorderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskReorderRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/{id}/status/:
+    post:
+      operationId: v1_projects_tasks_status_create
+      description: Изменяет статус задачи. Доступно creator, assignee, admin, owner.
+      summary: Изменить статус задачи
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskStatusRequest'
+            examples:
+              ChangeStatusRequest:
+                value:
+                  status: in_progress
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskStatusRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskStatusRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/{id}/tags/:
+    post:
+      operationId: v1_projects_tasks_tags_create
+      description: Устанавливает список тегов для задачи. Максимум 20 тегов. Доступно
+        creator, assignee, admin, owner.
+      summary: Установить теги задачи
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskSetTagsRequest'
+            examples:
+              SetTagsRequest:
+                value:
+                  tag_ids:
+                  - 1
+                  - 2
+                  - 3
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskSetTagsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskSetTagsRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/projects/{project_pk}/tasks/{task_pk}/comments/:
+    get:
+      operationId: v1_projects_tasks_comments_retrieve
+      description: Возвращает список всех комментариев к задаче.
+      summary: Список комментариев задачи
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: task_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - comments
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+    post:
+      operationId: v1_projects_tasks_comments_create
+      description: Создаёт новый комментарий к задаче. Уведомляет исполнителя и создателя
+        задачи.
+      summary: Создать комментарий
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: task_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+            examples:
+              CreateCommentRequest:
+                value:
+                  content: Отличная задача! Приступаю к выполнению.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ConflictError
+                  message:
+                    type: string
+              examples:
+                ConflictError:
+                  value:
+                    error: ConflictError
+                    message: Пользователь с таким email уже существует
+          description: Конфликт данных
+  /api/v1/projects/{project_pk}/tasks/{task_pk}/comments/{id}/:
+    get:
+      operationId: v1_projects_tasks_comments_retrieve_2
+      description: Возвращает подробную информацию о комментарии.
+      summary: Детали комментария
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: task_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - comments
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    patch:
+      operationId: v1_projects_tasks_comments_partial_update
+      description: Обновляет текст комментария. Доступно только автору. Флаг is_edited
+        автоматически устанавливается в true.
+      summary: Обновить комментарий
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: task_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+            examples:
+              UpdateCommentRequest:
+                value:
+                  content: Обновлённый текст комментария
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    delete:
+      operationId: v1_projects_tasks_comments_destroy
+      description: Удаляет комментарий. Доступно автору, admin и owner.
+      summary: Удалить комментарий
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: task_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - comments
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          content:
+            application/json:
+              schema:
+                description: Успешно удалено
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/users/:
+    get:
+      operationId: v1_users_retrieve
+      description: Возвращает пагинированный список активных пользователей. Доступно
+        только администраторам.
+      summary: Список пользователей
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+  /api/v1/users/{id}/:
+    get:
+      operationId: v1_users_retrieve_2
+      description: Возвращает подробную информацию о пользователе. Доступно только
+        владельцу профиля.
+      summary: Детали пользователя
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Пользователь.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+    patch:
+      operationId: v1_users_partial_update
+      description: Обновляет профиль пользователя (имя, фамилия, телефон, биография).
+      summary: Обновить профиль
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Пользователь.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+            examples:
+              UpdateProfileExample:
+                value:
+                  first_name: Иван
+                  last_name: Иванов
+                  phone: '+79001234567'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/users/me/:
+    get:
+      operationId: v1_users_me_retrieve
+      description: Возвращает информацию о текущем авторизованном пользователе.
+      summary: Текущий пользователь
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ValidationError
+                  message:
+                    type: string
+              examples:
+                ValidationError:
+                  value:
+                    error: ValidationError
+                    message: Email обязателен для заполнения
+          description: Ошибка валидации данных
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Не авторизован
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PermissionDeniedError
+                  message:
+                    type: string
+              examples:
+                PermissionDeniedError:
+                  value:
+                    error: PermissionDeniedError
+                    message: У вас нет прав для выполнения этого действия
+          description: Доступ запрещён
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: NotFoundError
+                  message:
+                    type: string
+              examples:
+                NotFoundError:
+                  value:
+                    error: NotFoundError
+                    message: Проект не найден
+          description: Объект не найден
+  /api/v1/users/me/change-password/:
+    post:
+      operationId: v1_users_me_change_password_create
+      description: Изменяет пароль текущего пользователя. Требуется старый пароль
+        для подтверждения.
+      summary: Изменить пароль
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            examples:
+              ChangePasswordRequest:
+                value:
+                  old_password: oldpass123
+                  new_password: newpass123
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Неверный старый пароль
+          description: ''
+components:
+  schemas:
+    ChangePasswordRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          description: Текущий пароль
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: Новый пароль (минимум 8 символов)
+      required:
+      - new_password
+      - old_password
+    CommentCreateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          description: Текст комментария (1-10000 символов)
+          maxLength: 10000
+      required:
+      - content
+    PatchedCommentUpdateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          description: Текст комментария (1-10000 символов)
+          maxLength: 10000
+    PatchedProjectMemberUpdateRequest:
+      type: object
+      properties:
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role70eEnum'
+          description: |-
+            Новая роль участника: admin, member, viewer
+
+            * `admin` - Администратор
+            * `member` - Участник
+            * `viewer` - Наблюдатель
+    PatchedProjectUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название проекта
+          maxLength: 255
+        description:
+          type: string
+          description: Описание проекта
+    PatchedTagUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название тега (уникально в рамках проекта)
+          maxLength: 50
+        color:
+          type: string
+          minLength: 1
+          description: 'HEX цвет в формате #RRGGBB (например, #FF5733)'
+          pattern: ^#[0-9A-Fa-f]{6}$
+    PatchedTaskUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Название задачи
+          maxLength: 255
+        description:
+          type: string
+          description: Описание задачи
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Приоритет: low, medium, high, urgent
+
+            * `low` - Низкий
+            * `medium` - Средний
+            * `high` - Высокий
+            * `urgent` - Срочный
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Крайний срок выполнения (ISO 8601 формат)
+    PatchedUserUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          description: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          description: Фамилия
+          maxLength: 150
+        phone:
+          type: string
+          description: Номер телефона
+          maxLength: 20
+        bio:
+          type: string
+          description: Биография (максимум 500 символов)
+          maxLength: 500
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          description: Аватар пользователя
+    PriorityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      - urgent
+      type: string
+      description: |-
+        * `low` - Низкий
+        * `medium` - Средний
+        * `high` - Высокий
+        * `urgent` - Срочный
+    ProjectCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название проекта
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          description: Описание проекта
+      required:
+      - name
+    ProjectMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserList'
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/ProjectMemberRoleEnum'
+          readOnly: true
+          title: Роль
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата вступления
+      required:
+      - id
+      - joined_at
+      - role
+      - user
+    ProjectMemberCreateRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          minimum: 1
+          description: ID пользователя для добавления в проект
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role70eEnum'
+          default: member
+          description: |-
+            Роль участника: admin, member, viewer
+
+            * `admin` - Администратор
+            * `member` - Участник
+            * `viewer` - Наблюдатель
+      required:
+      - user_id
+    ProjectMemberRoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Владелец
+        * `admin` - Администратор
+        * `member` - Участник
+        * `viewer` - Наблюдатель
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Email пользователя (используется для входа)
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: Пароль (минимум 8 символов)
+        first_name:
+          type: string
+          minLength: 1
+          description: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          description: Фамилия
+          maxLength: 150
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+    RequestPasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Email для восстановления пароля
+      required:
+      - email
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: Токен восстановления пароля из email
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: Новый пароль (минимум 8 символов)
+      required:
+      - new_password
+      - token
+    Role70eEnum:
+      enum:
+      - admin
+      - member
+      - viewer
+      type: string
+      description: |-
+        * `admin` - Администратор
+        * `member` - Участник
+        * `viewer` - Наблюдатель
+    StatusEnum:
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Ожидает
+        * `in_progress` - В работе
+        * `completed` - Завершена
+        * `cancelled` - Отменена
+    TagCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название тега (уникально в рамках проекта)
+          maxLength: 50
+        color:
+          type: string
+          minLength: 1
+          default: '#6B7280'
+          description: 'HEX цвет в формате #RRGGBB (например, #FF5733)'
+          pattern: ^#[0-9A-Fa-f]{6}$
+      required:
+      - name
+    TaskAssignRequest:
+      type: object
+      properties:
+        assignee_id:
+          type: integer
+          nullable: true
+          description: ID пользователя для назначения (null для снятия назначения)
+      required:
+      - assignee_id
+    TaskCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Название задачи
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          description: Описание задачи
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          default: medium
+          description: |-
+            Приоритет: low, medium, high, urgent
+
+            * `low` - Низкий
+            * `medium` - Средний
+            * `high` - Высокий
+            * `urgent` - Срочный
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Крайний срок выполнения (ISO 8601 формат)
+        assignee_id:
+          type: integer
+          nullable: true
+          description: ID пользователя для назначения задачи
+      required:
+      - title
+    TaskReorderRequest:
+      type: object
+      properties:
+        position:
+          type: integer
+          minimum: 0
+          description: Новая позиция задачи (0-based)
+      required:
+      - position
+    TaskSetTagsRequest:
+      type: object
+      properties:
+        tag_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: Список ID тегов (максимум 20)
+          maxItems: 20
+      required:
+      - tag_ids
+    TaskStatusRequest:
+      type: object
+      properties:
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            Статус: pending, in_progress, completed, cancelled
+
+            * `pending` - Ожидает
+            * `in_progress` - В работе
+            * `completed` - Завершена
+            * `cancelled` - Отменена
+      required:
+      - status
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    UserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        full_name:
+          type: string
+          readOnly: true
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+          title: Аватар
+        phone:
+          type: string
+          readOnly: true
+          title: Телефон
+        bio:
+          type: string
+          readOnly: true
+          title: О себе
+        is_verified:
+          type: boolean
+          readOnly: true
+          title: Email подтверждён
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+      required:
+      - avatar
+      - bio
+      - date_joined
+      - email
+      - first_name
+      - full_name
+      - id
+      - is_verified
+      - last_name
+      - phone
+    UserList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+          title: Аватар
+      required:
+      - avatar
+      - email
+      - first_name
+      - id
+      - last_name
+    VerifyEmailRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: Токен верификации email из письма
+      required:
+      - token
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+servers:
+- url: http://localhost:8000
+  description: Local development
+- url: https://api.taskflow.example.com
+  description: Production
+tags:
+- name: auth
+  description: Аутентификация и регистрация
+- name: users
+  description: Управление пользователями
+- name: projects
+  description: Управление проектами
+- name: tasks
+  description: Управление задачами
+- name: tags
+  description: Управление тегами
+- name: comments
+  description: Комментарии к задачам

@@ -158,9 +158,63 @@ SIMPLE_JWT = {
 # API Documentation (Swagger/OpenAPI)
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TaskFlow API',
-    'DESCRIPTION': 'REST API платформа для управления проектами и задачами',
+    'DESCRIPTION': '''
+REST API платформа для управления проектами и задачами.
+
+## Аутентификация
+API использует JWT (JSON Web Token):
+1. Получите токены через POST `/api/v1/auth/token/`
+2. Используйте access токен: `Authorization: Bearer <token>`
+3. Обновите токен через POST `/api/v1/auth/token/refresh/`
+
+## Пагинация
+List эндпоинты возвращают:
+```json
+{
+  "count": 100,
+  "next": "...",
+  "previous": null,
+  "results": [...]
+}
+```
+    ''',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Local development'},
+        {'url': 'https://api.taskflow.example.com', 'description': 'Production'},
+    ],
+
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'bearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
+    'SECURITY': [{'bearerAuth': []}],
+
+    'TAGS': [
+        {'name': 'auth', 'description': 'Аутентификация и регистрация'},
+        {'name': 'users', 'description': 'Управление пользователями'},
+        {'name': 'projects', 'description': 'Управление проектами'},
+        {'name': 'tasks', 'description': 'Управление задачами'},
+        {'name': 'tags', 'description': 'Управление тегами'},
+        {'name': 'comments', 'description': 'Комментарии к задачам'},
+    ],
+
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SORT_OPERATIONS': True,
+
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'filter': True,
+    },
 }
 
 # Celery (фоновые задачи)

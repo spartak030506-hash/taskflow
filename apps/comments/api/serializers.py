@@ -38,8 +38,16 @@ class CommentDetailSerializer(serializers.ModelSerializer):
 
 
 class CommentCreateSerializer(serializers.Serializer):
-    content = serializers.CharField(min_length=1, max_length=10000)
+    content = serializers.CharField(
+        min_length=1,
+        max_length=10000,
+        help_text="Текст комментария (1-10000 символов)"
+    )
 
 
 class CommentUpdateSerializer(serializers.Serializer):
-    content = serializers.CharField(min_length=1, max_length=10000)
+    content = serializers.CharField(
+        min_length=1,
+        max_length=10000,
+        help_text="Текст комментария (1-10000 символов)"
+    )

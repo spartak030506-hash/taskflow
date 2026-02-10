@@ -3,8 +3,17 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
 
 from core.exceptions import NotFoundError
+from core.api_docs import (
+    list_endpoint_schema,
+    create_endpoint_schema,
+    retrieve_endpoint_schema,
+    update_endpoint_schema,
+    delete_endpoint_schema,
+    action_endpoint_schema,
+)
 
 from apps.projects import selectors as project_selectors
 from apps.tags import services as tag_services
@@ -26,6 +35,15 @@ from .serializers import (
 
 
 class TaskViewSet(viewsets.GenericViewSet):
+    """
+    ViewSet для управления задачами внутри проектов.
+
+    Доступ:
+    - Просмотр: все участники проекта
+    - Создание: member, admin, owner (не viewer)
+    - Редактирование: creator, assignee, admin, owner
+    - Удаление: creator, admin, owner
+    """
     queryset = Task.objects.all()
     serializer_class = TaskDetailSerializer
 
@@ -103,6 +121,34 @@ class TaskViewSet(viewsets.GenericViewSet):
             })
         return assignee
 
+    @list_endpoint_schema(
+        summary="Список задач проекта",
+        description="Возвращает список задач проекта с фильтрацией по статусу, приоритету и исполнителю.",
+        tags=['tasks'],
+        parameters=[
+            OpenApiParameter(
+                name='status',
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description='Фильтр по статусу (pending, in_progress, completed, cancelled)',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='priority',
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description='Фильтр по приоритету (low, medium, high, urgent)',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='assignee_id',
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description='Фильтр по ID исполнителя',
+                required=False,
+            ),
+        ],
+    )
     def list(self, request, project_pk=None):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
@@ -112,6 +158,24 @@ class TaskViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @create_endpoint_schema(
+        summary="Создать задачу",
+        description="Создаёт новую задачу в проекте. Доступно member, admin, owner (не viewer).",
+        tags=['tasks'],
+        request_examples=[
+            OpenApiExample(
+                name='CreateTaskRequest',
+                value={
+                    'title': 'Новая задача',
+                    'description': 'Описание задачи',
+                    'priority': 'high',
+                    'deadline': '2024-12-31T23:59:59Z',
+                    'assignee_id': 2,
+                },
+                request_only=True,
+            ),
+        ],
+    )
     def create(self, request, project_pk=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -136,11 +200,28 @@ class TaskViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @retrieve_endpoint_schema(
+        summary="Детали задачи",
+        description="Возвращает подробную информацию о задаче.",
+        tags=['tasks'],
+    )
     def retrieve(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskDetailSerializer(task)
         return Response(serializer.data)
 
+    @update_endpoint_schema(
+        summary="Обновить задачу",
+        description="Обновляет информацию о задаче. Доступно creator, assignee, admin, owner.",
+        tags=['tasks'],
+        request_examples=[
+            OpenApiExample(
+                name='UpdateTaskRequest',
+                value={'title': 'Обновлённое название', 'priority': 'urgent'},
+                request_only=True,
+            ),
+        ],
+    )
     def partial_update(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskUpdateSerializer(data=request.data)
@@ -150,11 +231,29 @@ class TaskViewSet(viewsets.GenericViewSet):
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
 
+    @delete_endpoint_schema(
+        summary="Удалить задачу",
+        description="Удаляет задачу. Доступно creator, admin, owner.",
+        tags=['tasks'],
+    )
     def destroy(self, request, project_pk=None, pk=None):
         task = self.get_object()
         services.delete_task(task=task, deleted_by=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action_endpoint_schema(
+        summary="Изменить статус задачи",
+        description="Изменяет статус задачи. Доступно creator, assignee, admin, owner.",
+        tags=['tasks'],
+        method='POST',
+        request_examples=[
+            OpenApiExample(
+                name='ChangeStatusRequest',
+                value={'status': 'in_progress'},
+                request_only=True,
+            ),
+        ],
+    )
     @action(detail=True, methods=['post'], url_path='status')
     def change_status(self, request, project_pk=None, pk=None):
         task = self.get_object()
@@ -169,6 +268,24 @@ class TaskViewSet(viewsets.GenericViewSet):
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
 
+    @action_endpoint_schema(
+        summary="Назначить исполнителя",
+        description="Назначает или снимает исполнителя задачи. Доступно creator, assignee, admin, owner.",
+        tags=['tasks'],
+        method='POST',
+        request_examples=[
+            OpenApiExample(
+                name='AssignTaskRequest',
+                value={'assignee_id': 2},
+                request_only=True,
+            ),
+            OpenApiExample(
+                name='UnassignTaskRequest',
+                value={'assignee_id': None},
+                request_only=True,
+            ),
+        ],
+    )
     @action(detail=True, methods=['post'])
     def assign(self, request, project_pk=None, pk=None):
         task = self.get_object()
@@ -190,6 +307,19 @@ class TaskViewSet(viewsets.GenericViewSet):
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
 
+    @action_endpoint_schema(
+        summary="Изменить позицию задачи",
+        description="Изменяет позицию задачи в списке. Доступно creator, assignee, admin, owner.",
+        tags=['tasks'],
+        method='POST',
+        request_examples=[
+            OpenApiExample(
+                name='ReorderTaskRequest',
+                value={'position': 0},
+                request_only=True,
+            ),
+        ],
+    )
     @action(detail=True, methods=['post'])
     def reorder(self, request, project_pk=None, pk=None):
         task = self.get_object()
@@ -204,6 +334,19 @@ class TaskViewSet(viewsets.GenericViewSet):
         task = selectors.get_by_id(task.id)
         return Response(TaskDetailSerializer(task).data)
 
+    @action_endpoint_schema(
+        summary="Установить теги задачи",
+        description="Устанавливает список тегов для задачи. Максимум 20 тегов. Доступно creator, assignee, admin, owner.",
+        tags=['tasks'],
+        method='POST',
+        request_examples=[
+            OpenApiExample(
+                name='SetTagsRequest',
+                value={'tag_ids': [1, 2, 3]},
+                request_only=True,
+            ),
+        ],
+    )
     @action(detail=True, methods=['post'])
     def set_tags(self, request, project_pk=None, pk=None):
         task = self.get_object()

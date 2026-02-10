@@ -1,8 +1,16 @@
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import OpenApiExample
 
 from core.exceptions import NotFoundError
+from core.api_docs import (
+    list_endpoint_schema,
+    create_endpoint_schema,
+    retrieve_endpoint_schema,
+    update_endpoint_schema,
+    delete_endpoint_schema,
+)
 
 from apps.projects import selectors as project_selectors
 
@@ -18,6 +26,13 @@ from .serializers import (
 
 
 class TagViewSet(viewsets.GenericViewSet):
+    """
+    ViewSet для управления тегами задач.
+
+    Доступ:
+    - Просмотр: все участники проекта
+    - Создание/редактирование/удаление: admin, owner
+    """
     queryset = Tag.objects.all()
     serializer_class = TagDetailSerializer
 
@@ -62,6 +77,11 @@ class TagViewSet(viewsets.GenericViewSet):
         self.check_object_permissions(self.request, tag)
         return tag
 
+    @list_endpoint_schema(
+        summary="Список тегов проекта",
+        description="Возвращает список всех тегов проекта.",
+        tags=['tags'],
+    )
     def list(self, request, project_pk=None):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
@@ -71,6 +91,18 @@ class TagViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @create_endpoint_schema(
+        summary="Создать тег",
+        description="Создаёт новый тег для проекта. Имя должно быть уникальным в рамках проекта. Доступно admin и owner.",
+        tags=['tags'],
+        request_examples=[
+            OpenApiExample(
+                name='CreateTagRequest',
+                value={'name': 'bug', 'color': '#FF5733'},
+                request_only=True,
+            ),
+        ],
+    )
     def create(self, request, project_pk=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -86,11 +118,28 @@ class TagViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @retrieve_endpoint_schema(
+        summary="Детали тега",
+        description="Возвращает подробную информацию о теге.",
+        tags=['tags'],
+    )
     def retrieve(self, request, project_pk=None, pk=None):
         tag = self.get_object()
         serializer = TagDetailSerializer(tag)
         return Response(serializer.data)
 
+    @update_endpoint_schema(
+        summary="Обновить тег",
+        description="Обновляет информацию о теге. Доступно admin и owner.",
+        tags=['tags'],
+        request_examples=[
+            OpenApiExample(
+                name='UpdateTagRequest',
+                value={'name': 'critical-bug', 'color': '#DC2626'},
+                request_only=True,
+            ),
+        ],
+    )
     def partial_update(self, request, project_pk=None, pk=None):
         tag = self.get_object()
         serializer = TagUpdateSerializer(data=request.data)
@@ -100,6 +149,11 @@ class TagViewSet(viewsets.GenericViewSet):
         tag = selectors.get_by_id(tag.id)
         return Response(TagDetailSerializer(tag).data)
 
+    @delete_endpoint_schema(
+        summary="Удалить тег",
+        description="Удаляет тег. Тег автоматически убирается из всех задач. Доступно admin и owner.",
+        tags=['tags'],
+    )
     def destroy(self, request, project_pk=None, pk=None):
         tag = self.get_object()
         services.delete_tag(tag=tag)
