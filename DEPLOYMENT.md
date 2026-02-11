@@ -1,5 +1,54 @@
 # Production Deployment
 
+## Быстрый деплой (автоматический)
+
+### 1. Клонировать репозиторий
+
+```bash
+git clone https://github.com/your-repo/taskflow.git
+cd taskflow
+```
+
+### 2. Создать .env
+
+```bash
+cp .env.production.example .env
+nano .env  # Заполнить все CHANGE_ME значения
+```
+
+### 3. Запустить деплой
+
+```bash
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
+```
+
+Скрипт автоматически:
+- ✅ Проверит .env
+- ✅ Запустит все сервисы
+- ✅ Применит миграции
+- ✅ Соберёт статику
+- ✅ Создаст суперпользователя (интерактивно)
+- ✅ Проверит работу API
+
+### 4. Настроить SSL (после DNS)
+
+```bash
+chmod +x scripts/setup-ssl.sh
+./scripts/setup-ssl.sh yourdomain.com
+```
+
+Скрипт автоматически:
+- ✅ Получит SSL сертификаты через Certbot
+- ✅ Обновит nginx.conf для HTTPS
+- ✅ Включит SSL в Django
+- ✅ Перезапустит сервисы
+- ✅ Настроит автообновление сертификатов
+
+---
+
+## Ручной деплой (пошагово)
+
 ## Подготовка
 
 ### 1. Создать .env файл
