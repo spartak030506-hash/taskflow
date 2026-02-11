@@ -61,7 +61,6 @@ sentry-sdk==2.52.0
 service-identity==24.2.0
 six==1.17.0
 sqlparse==0.5.5
--e git+https://github.com/spartak030506-hash/test.git@cb273e4325ca033494cdfedfcdf1fddef7bffdd6#egg=taskflow
 Twisted==25.5.0
 txaio==25.12.2
 typing_extensions==4.15.0
