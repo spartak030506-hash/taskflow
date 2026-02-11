@@ -47,13 +47,19 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 ```
 
-### 4. Создать суперпользователя
+### 4. Собрать статические файлы
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+```
+
+### 5. Создать суперпользователя
 
 ```bash
 docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
 ```
 
-### 5. Проверить health check
+### 6. Проверить health check
 
 ```bash
 curl http://localhost/api/v1/health/
@@ -117,13 +123,25 @@ nginx:
     - /etc/letsencrypt:/etc/letsencrypt:ro
 ```
 
-### 6. Перезапустить nginx
+### 6. Включить SSL в Django
+
+Обновить `.env`:
+```bash
+ENABLE_SSL=True
+```
+
+Перезапустить web:
+```bash
+docker compose -f docker-compose.prod.yml restart web
+```
+
+### 7. Перезапустить nginx
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d nginx
 ```
 
-### 7. Автообновление сертификатов
+### 8. Автообновление сертификатов
 
 Добавить в crontab:
 

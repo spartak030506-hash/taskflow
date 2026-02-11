@@ -35,6 +35,4 @@ RUN chmod +x /entrypoint.sh
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
-
 ENTRYPOINT ["/entrypoint.sh"]
