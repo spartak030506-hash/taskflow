@@ -1,23 +1,22 @@
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
-
-from core.exceptions import NotFoundError
-from core.api_docs import (
-    list_endpoint_schema,
-    create_endpoint_schema,
-    retrieve_endpoint_schema,
-    update_endpoint_schema,
-    delete_endpoint_schema,
-    action_endpoint_schema,
-)
 
 from apps.projects import selectors as project_selectors
 from apps.tags import services as tag_services
 from apps.users import selectors as user_selectors
+from core.api_docs import (
+    action_endpoint_schema,
+    create_endpoint_schema,
+    delete_endpoint_schema,
+    list_endpoint_schema,
+    retrieve_endpoint_schema,
+    update_endpoint_schema,
+)
+from core.exceptions import NotFoundError
 
 from .. import selectors, services
 from ..models import Task
@@ -44,50 +43,51 @@ class TaskViewSet(viewsets.GenericViewSet):
     - Редактирование: creator, assignee, admin, owner
     - Удаление: creator, admin, owner
     """
+
     queryset = Task.objects.all()
     serializer_class = TaskDetailSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
+        if self.action == "list":
             return [IsAuthenticated(), CanViewTask()]
-        if self.action == 'create':
+        if self.action == "create":
             return [IsAuthenticated(), CanCreateTask()]
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return [IsAuthenticated(), CanViewTask()]
-        if self.action == 'partial_update':
+        if self.action == "partial_update":
             return [IsAuthenticated(), CanViewTask(), CanEditTask()]
-        if self.action == 'destroy':
+        if self.action == "destroy":
             return [IsAuthenticated(), CanViewTask(), CanDeleteTask()]
-        if self.action in ['change_status', 'assign', 'reorder', 'set_tags']:
+        if self.action in ["change_status", "assign", "reorder", "set_tags"]:
             return [IsAuthenticated(), CanViewTask(), CanEditTask()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return TaskListSerializer
-        if self.action == 'create':
+        if self.action == "create":
             return TaskCreateSerializer
-        if self.action == 'partial_update':
+        if self.action == "partial_update":
             return TaskUpdateSerializer
-        if self.action == 'change_status':
+        if self.action == "change_status":
             return TaskStatusSerializer
-        if self.action == 'assign':
+        if self.action == "assign":
             return TaskAssignSerializer
-        if self.action == 'reorder':
+        if self.action == "reorder":
             return TaskReorderSerializer
-        if self.action == 'set_tags':
+        if self.action == "set_tags":
             return TaskSetTagsSerializer
         return TaskDetailSerializer
 
     def get_project(self):
-        project_id = self.kwargs.get('project_pk')
+        project_id = self.kwargs.get("project_pk")
         return project_selectors.get_by_id(project_id)
 
     def get_queryset(self):
         project = self.get_project()
-        task_status = self.request.query_params.get('status')
-        task_priority = self.request.query_params.get('priority')
-        assignee_id = self.request.query_params.get('assignee_id')
+        task_status = self.request.query_params.get("status")
+        task_priority = self.request.query_params.get("priority")
+        assignee_id = self.request.query_params.get("assignee_id")
 
         if assignee_id:
             try:
@@ -103,12 +103,12 @@ class TaskViewSet(viewsets.GenericViewSet):
         )
 
     def get_object(self):
-        task_id = self.kwargs.get('pk')
+        task_id = self.kwargs.get("pk")
         task = selectors.get_by_id(task_id)
 
-        project_id = self.kwargs.get('project_pk')
+        project_id = self.kwargs.get("project_pk")
         if task.project_id != int(project_id):
-            raise NotFoundError('Задача не найдена в этом проекте')
+            raise NotFoundError("Задача не найдена в этом проекте")
 
         self.check_object_permissions(self.request, task)
         return task
@@ -116,35 +116,33 @@ class TaskViewSet(viewsets.GenericViewSet):
     def _validate_assignee(self, assignee_id, project):
         assignee = user_selectors.get_by_id(assignee_id)
         if not project_selectors.exists_member(project, assignee):
-            raise ValidationError({
-                'assignee_id': 'Пользователь не является участником проекта'
-            })
+            raise ValidationError({"assignee_id": "Пользователь не является участником проекта"})
         return assignee
 
     @list_endpoint_schema(
         summary="Список задач проекта",
         description="Возвращает список задач проекта с фильтрацией по статусу, приоритету и исполнителю.",
-        tags=['tasks'],
+        tags=["tasks"],
         parameters=[
             OpenApiParameter(
-                name='status',
+                name="status",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description='Фильтр по статусу (pending, in_progress, completed, cancelled)',
+                description="Фильтр по статусу (pending, in_progress, completed, cancelled)",
                 required=False,
             ),
             OpenApiParameter(
-                name='priority',
+                name="priority",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description='Фильтр по приоритету (low, medium, high, urgent)',
+                description="Фильтр по приоритету (low, medium, high, urgent)",
                 required=False,
             ),
             OpenApiParameter(
-                name='assignee_id',
+                name="assignee_id",
                 type=int,
                 location=OpenApiParameter.QUERY,
-                description='Фильтр по ID исполнителя',
+                description="Фильтр по ID исполнителя",
                 required=False,
             ),
         ],
@@ -161,16 +159,16 @@ class TaskViewSet(viewsets.GenericViewSet):
     @create_endpoint_schema(
         summary="Создать задачу",
         description="Создаёт новую задачу в проекте. Доступно member, admin, owner (не viewer).",
-        tags=['tasks'],
+        tags=["tasks"],
         request_examples=[
             OpenApiExample(
-                name='CreateTaskRequest',
+                name="CreateTaskRequest",
                 value={
-                    'title': 'Новая задача',
-                    'description': 'Описание задачи',
-                    'priority': 'high',
-                    'deadline': '2024-12-31T23:59:59Z',
-                    'assignee_id': 2,
+                    "title": "Новая задача",
+                    "description": "Описание задачи",
+                    "priority": "high",
+                    "deadline": "2024-12-31T23:59:59Z",
+                    "assignee_id": 2,
                 },
                 request_only=True,
             ),
@@ -184,7 +182,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         data = serializer.validated_data.copy()
 
         assignee = None
-        assignee_id = data.pop('assignee_id', None)
+        assignee_id = data.pop("assignee_id", None)
         if assignee_id:
             assignee = self._validate_assignee(assignee_id, project)
 
@@ -203,7 +201,7 @@ class TaskViewSet(viewsets.GenericViewSet):
     @retrieve_endpoint_schema(
         summary="Детали задачи",
         description="Возвращает подробную информацию о задаче.",
-        tags=['tasks'],
+        tags=["tasks"],
     )
     def retrieve(self, request, project_pk=None, pk=None):
         task = self.get_object()
@@ -213,11 +211,11 @@ class TaskViewSet(viewsets.GenericViewSet):
     @update_endpoint_schema(
         summary="Обновить задачу",
         description="Обновляет информацию о задаче. Доступно creator, assignee, admin, owner.",
-        tags=['tasks'],
+        tags=["tasks"],
         request_examples=[
             OpenApiExample(
-                name='UpdateTaskRequest',
-                value={'title': 'Обновлённое название', 'priority': 'urgent'},
+                name="UpdateTaskRequest",
+                value={"title": "Обновлённое название", "priority": "urgent"},
                 request_only=True,
             ),
         ],
@@ -234,7 +232,7 @@ class TaskViewSet(viewsets.GenericViewSet):
     @delete_endpoint_schema(
         summary="Удалить задачу",
         description="Удаляет задачу. Доступно creator, admin, owner.",
-        tags=['tasks'],
+        tags=["tasks"],
     )
     def destroy(self, request, project_pk=None, pk=None):
         task = self.get_object()
@@ -244,17 +242,17 @@ class TaskViewSet(viewsets.GenericViewSet):
     @action_endpoint_schema(
         summary="Изменить статус задачи",
         description="Изменяет статус задачи. Доступно creator, assignee, admin, owner.",
-        tags=['tasks'],
-        method='POST',
+        tags=["tasks"],
+        method="POST",
         request_examples=[
             OpenApiExample(
-                name='ChangeStatusRequest',
-                value={'status': 'in_progress'},
+                name="ChangeStatusRequest",
+                value={"status": "in_progress"},
                 request_only=True,
             ),
         ],
     )
-    @action(detail=True, methods=['post'], url_path='status')
+    @action(detail=True, methods=["post"], url_path="status")
     def change_status(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskStatusSerializer(data=request.data)
@@ -262,7 +260,7 @@ class TaskViewSet(viewsets.GenericViewSet):
 
         services.change_status(
             task=task,
-            new_status=serializer.validated_data['status'],
+            new_status=serializer.validated_data["status"],
             updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
@@ -271,22 +269,22 @@ class TaskViewSet(viewsets.GenericViewSet):
     @action_endpoint_schema(
         summary="Назначить исполнителя",
         description="Назначает или снимает исполнителя задачи. Доступно creator, assignee, admin, owner.",
-        tags=['tasks'],
-        method='POST',
+        tags=["tasks"],
+        method="POST",
         request_examples=[
             OpenApiExample(
-                name='AssignTaskRequest',
-                value={'assignee_id': 2},
+                name="AssignTaskRequest",
+                value={"assignee_id": 2},
                 request_only=True,
             ),
             OpenApiExample(
-                name='UnassignTaskRequest',
-                value={'assignee_id': None},
+                name="UnassignTaskRequest",
+                value={"assignee_id": None},
                 request_only=True,
             ),
         ],
     )
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def assign(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskAssignSerializer(data=request.data)
@@ -294,7 +292,7 @@ class TaskViewSet(viewsets.GenericViewSet):
 
         project = self.get_project()
         assignee = None
-        assignee_id = serializer.validated_data['assignee_id']
+        assignee_id = serializer.validated_data["assignee_id"]
         if assignee_id:
             assignee = self._validate_assignee(assignee_id, project)
 
@@ -310,17 +308,17 @@ class TaskViewSet(viewsets.GenericViewSet):
     @action_endpoint_schema(
         summary="Изменить позицию задачи",
         description="Изменяет позицию задачи в списке. Доступно creator, assignee, admin, owner.",
-        tags=['tasks'],
-        method='POST',
+        tags=["tasks"],
+        method="POST",
         request_examples=[
             OpenApiExample(
-                name='ReorderTaskRequest',
-                value={'position': 0},
+                name="ReorderTaskRequest",
+                value={"position": 0},
                 request_only=True,
             ),
         ],
     )
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def reorder(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskReorderSerializer(data=request.data)
@@ -328,7 +326,7 @@ class TaskViewSet(viewsets.GenericViewSet):
 
         services.reorder_task(
             task=task,
-            new_position=serializer.validated_data['position'],
+            new_position=serializer.validated_data["position"],
             updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)
@@ -337,17 +335,17 @@ class TaskViewSet(viewsets.GenericViewSet):
     @action_endpoint_schema(
         summary="Установить теги задачи",
         description="Устанавливает список тегов для задачи. Максимум 20 тегов. Доступно creator, assignee, admin, owner.",
-        tags=['tasks'],
-        method='POST',
+        tags=["tasks"],
+        method="POST",
         request_examples=[
             OpenApiExample(
-                name='SetTagsRequest',
-                value={'tag_ids': [1, 2, 3]},
+                name="SetTagsRequest",
+                value={"tag_ids": [1, 2, 3]},
                 request_only=True,
             ),
         ],
     )
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def set_tags(self, request, project_pk=None, pk=None):
         task = self.get_object()
         serializer = TaskSetTagsSerializer(data=request.data)
@@ -355,7 +353,7 @@ class TaskViewSet(viewsets.GenericViewSet):
 
         tag_services.set_task_tags(
             task=task,
-            tag_ids=serializer.validated_data['tag_ids'],
+            tag_ids=serializer.validated_data["tag_ids"],
             updated_by=request.user,
         )
         task = selectors.get_by_id(task.id)

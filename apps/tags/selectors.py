@@ -8,16 +8,16 @@ from .models import Tag
 
 def get_by_id(tag_id: int) -> Tag:
     try:
-        return Tag.objects.select_related('project').get(id=tag_id)
+        return Tag.objects.select_related("project").get(id=tag_id)
     except Tag.DoesNotExist:
-        raise NotFoundError('Тег не найден')
+        raise NotFoundError("Тег не найден")
 
 
 def get_by_id_for_update(tag_id: int) -> Tag:
     try:
-        return Tag.objects.select_for_update().select_related('project').get(id=tag_id)
+        return Tag.objects.select_for_update().select_related("project").get(id=tag_id)
     except Tag.DoesNotExist:
-        raise NotFoundError('Тег не найден')
+        raise NotFoundError("Тег не найден")
 
 
 def filter_by_project(project: Project) -> QuerySet[Tag]:
@@ -25,7 +25,7 @@ def filter_by_project(project: Project) -> QuerySet[Tag]:
 
 
 def filter_by_ids(tag_ids: list[int]) -> QuerySet[Tag]:
-    return Tag.objects.filter(id__in=tag_ids).select_related('project')
+    return Tag.objects.filter(id__in=tag_ids).select_related("project")
 
 
 def exists_tag_name_in_project(project: Project, name: str, exclude_id: int | None = None) -> bool:

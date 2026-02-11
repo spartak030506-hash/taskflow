@@ -109,7 +109,11 @@ ignore = [
     "E501",
     "B008",
     "W191",
+    "B904",
+    "UP042",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"config/settings/*.py" = ["F403", "F405"]
+"config/asgi.py" = ["E402"]

@@ -1,15 +1,18 @@
 import logging
+
 from celery import shared_task
-from core.websocket import send_to_project_group
-from core.event_types import TaskEvents, CommentEvents
-from apps.tasks.models import Task
+
 from apps.comments.models import Comment
+from apps.tasks.models import Task
 from apps.users.models import User
+from core.event_types import CommentEvents, TaskEvents
+from core.websocket import send_to_project_group
+
 from .serializers import (
-    serialize_task_event,
+    serialize_comment_deleted_event,
     serialize_comment_event,
     serialize_task_deleted_event,
-    serialize_comment_deleted_event,
+    serialize_task_event,
 )
 
 logger = logging.getLogger(__name__)
@@ -18,12 +21,14 @@ logger = logging.getLogger(__name__)
 @shared_task
 def broadcast_task_created(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
-        logger.warning(f'Task or User not found: task={task_id}, user={user_id}')
+        logger.warning(f"Task or User not found: task={task_id}, user={user_id}")
         return
 
     event_data = serialize_task_event(task, TaskEvents.CREATED, user)
@@ -33,9 +38,11 @@ def broadcast_task_created(task_id: int, user_id: int):
 @shared_task
 def broadcast_task_updated(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
         return
@@ -58,9 +65,11 @@ def broadcast_task_deleted(task_id: int, project_id: int, user_id: int):
 @shared_task
 def broadcast_task_status_changed(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
         return
@@ -72,9 +81,11 @@ def broadcast_task_status_changed(task_id: int, user_id: int):
 @shared_task
 def broadcast_task_assigned(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
         return
@@ -86,9 +97,11 @@ def broadcast_task_assigned(task_id: int, user_id: int):
 @shared_task
 def broadcast_task_reordered(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
         return
@@ -100,9 +113,11 @@ def broadcast_task_reordered(task_id: int, user_id: int):
 @shared_task
 def broadcast_task_tags_changed(task_id: int, user_id: int):
     try:
-        task = Task.objects.select_related(
-            'creator', 'assignee', 'project'
-        ).prefetch_related('tags').get(id=task_id)
+        task = (
+            Task.objects.select_related("creator", "assignee", "project")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
         user = User.objects.get(id=user_id)
     except (Task.DoesNotExist, User.DoesNotExist):
         return
@@ -114,9 +129,7 @@ def broadcast_task_tags_changed(task_id: int, user_id: int):
 @shared_task
 def broadcast_comment_created(comment_id: int, user_id: int):
     try:
-        comment = Comment.objects.select_related(
-            'author', 'task__project'
-        ).get(id=comment_id)
+        comment = Comment.objects.select_related("author", "task__project").get(id=comment_id)
         user = User.objects.get(id=user_id)
     except (Comment.DoesNotExist, User.DoesNotExist):
         return
@@ -128,9 +141,7 @@ def broadcast_comment_created(comment_id: int, user_id: int):
 @shared_task
 def broadcast_comment_updated(comment_id: int, user_id: int):
     try:
-        comment = Comment.objects.select_related(
-            'author', 'task__project'
-        ).get(id=comment_id)
+        comment = Comment.objects.select_related("author", "task__project").get(id=comment_id)
         user = User.objects.get(id=user_id)
     except (Comment.DoesNotExist, User.DoesNotExist):
         return

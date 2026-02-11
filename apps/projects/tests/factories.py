@@ -10,8 +10,8 @@ class ProjectFactory(DjangoModelFactory):
         model = Project
         skip_postgeneration_save = True
 
-    name = factory.Sequence(lambda n: f'Project {n}')
-    description = factory.Faker('paragraph')
+    name = factory.Sequence(lambda n: f"Project {n}")
+    description = factory.Faker("paragraph")
     status = Project.Status.ACTIVE
     owner = factory.SubFactory(UserFactory, is_verified=True)
 
@@ -22,9 +22,7 @@ class ProjectFactory(DjangoModelFactory):
         if extracted is False:
             return
         ProjectMember.objects.get_or_create(
-            project=self,
-            user=self.owner,
-            defaults={'role': ProjectMember.Role.OWNER}
+            project=self, user=self.owner, defaults={"role": ProjectMember.Role.OWNER}
         )
 
 

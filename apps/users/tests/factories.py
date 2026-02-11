@@ -1,9 +1,10 @@
-import factory
-from factory.django import DjangoModelFactory
-from django.utils import timezone
 from datetime import timedelta
 
-from apps.users.models import User, EmailVerificationToken, PasswordResetToken
+import factory
+from django.utils import timezone
+from factory.django import DjangoModelFactory
+
+from apps.users.models import EmailVerificationToken, PasswordResetToken, User
 
 
 class UserFactory(DjangoModelFactory):
@@ -11,18 +12,18 @@ class UserFactory(DjangoModelFactory):
         model = User
         skip_postgeneration_save = True
 
-    email = factory.Sequence(lambda n: f'user{n}@example.com')
-    first_name = factory.Faker('first_name')
-    last_name = factory.Faker('last_name')
+    email = factory.Sequence(lambda n: f"user{n}@example.com")
+    first_name = factory.Faker("first_name")
+    last_name = factory.Faker("last_name")
     is_verified = False
     is_active = True
 
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
-        password = extracted or 'TestPass123!'
+        password = extracted or "TestPass123!"
         self.set_password(password)
         if create:
-            self.save(update_fields=['password'])
+            self.save(update_fields=["password"])
 
 
 class EmailVerificationTokenFactory(DjangoModelFactory):
@@ -30,7 +31,7 @@ class EmailVerificationTokenFactory(DjangoModelFactory):
         model = EmailVerificationToken
 
     user = factory.SubFactory(UserFactory)
-    token = factory.LazyFunction(lambda: __import__('secrets').token_urlsafe(48))
+    token = factory.LazyFunction(lambda: __import__("secrets").token_urlsafe(48))
     expires_at = factory.LazyFunction(lambda: timezone.now() + timedelta(hours=24))
 
 
@@ -39,6 +40,6 @@ class PasswordResetTokenFactory(DjangoModelFactory):
         model = PasswordResetToken
 
     user = factory.SubFactory(UserFactory)
-    token = factory.LazyFunction(lambda: __import__('secrets').token_urlsafe(48))
+    token = factory.LazyFunction(lambda: __import__("secrets").token_urlsafe(48))
     expires_at = factory.LazyFunction(lambda: timezone.now() + timedelta(hours=1))
     is_used = False

@@ -6,7 +6,7 @@ from apps.projects.models import ProjectMember
 
 class CanViewTask(permissions.BasePermission):
     def has_permission(self, request, view):
-        project_id = view.kwargs.get('project_pk')
+        project_id = view.kwargs.get("project_pk")
         if not project_id:
             return False
         project = project_selectors.get_by_id(project_id)
@@ -15,7 +15,7 @@ class CanViewTask(permissions.BasePermission):
 
 class CanCreateTask(permissions.BasePermission):
     def has_permission(self, request, view):
-        project_id = view.kwargs.get('project_pk')
+        project_id = view.kwargs.get("project_pk")
         if not project_id:
             return False
         project = project_selectors.get_by_id(project_id)

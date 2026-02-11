@@ -2,11 +2,11 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 
-from core.exceptions import ValidationError, ConflictError, NotFoundError
+from core.exceptions import ConflictError, NotFoundError, ValidationError
 
 from . import selectors
-from .models import User, EmailVerificationToken, PasswordResetToken
-from .tasks import send_verification_email, send_password_reset_email
+from .models import EmailVerificationToken, PasswordResetToken, User
+from .tasks import send_password_reset_email, send_verification_email
 
 
 @transaction.atomic
@@ -20,12 +20,12 @@ def register_user(
     email = email.lower()
 
     if selectors.exists_email(email):
-        raise ConflictError('Пользователь с таким email уже существует')
+        raise ConflictError("Пользователь с таким email уже существует")
 
     try:
         validate_password(password)
     except DjangoValidationError as e:
-        raise ValidationError('; '.join(e.messages))
+        raise ValidationError("; ".join(e.messages))
 
     user = User.objects.create_user(
         email=email,
@@ -46,15 +46,15 @@ def verify_email(*, token: str) -> User:
     token_obj = selectors.get_verification_token(token)
 
     if token_obj.is_expired:
-        raise ValidationError('Токен верификации истёк')
+        raise ValidationError("Токен верификации истёк")
 
     user = token_obj.user
 
     if user.is_verified:
-        raise ValidationError('Email уже подтверждён')
+        raise ValidationError("Email уже подтверждён")
 
     user.is_verified = True
-    user.save(update_fields=['is_verified'])
+    user.save(update_fields=["is_verified"])
 
     token_obj.delete()
 
@@ -64,7 +64,7 @@ def verify_email(*, token: str) -> User:
 @transaction.atomic
 def resend_verification_email(*, user: User) -> None:
     if user.is_verified:
-        raise ValidationError('Email уже подтверждён')
+        raise ValidationError("Email уже подтверждён")
 
     EmailVerificationToken.create_for_user(user)
 
@@ -85,23 +85,23 @@ def update_profile(
 
     if first_name is not None:
         user.first_name = first_name
-        update_fields.append('first_name')
+        update_fields.append("first_name")
 
     if last_name is not None:
         user.last_name = last_name
-        update_fields.append('last_name')
+        update_fields.append("last_name")
 
     if phone is not None:
         user.phone = phone
-        update_fields.append('phone')
+        update_fields.append("phone")
 
     if bio is not None:
         user.bio = bio
-        update_fields.append('bio')
+        update_fields.append("bio")
 
     if avatar is not None:
         user.avatar = avatar
-        update_fields.append('avatar')
+        update_fields.append("avatar")
 
     if update_fields:
         user.save(update_fields=update_fields)
@@ -117,15 +117,15 @@ def change_password(
     new_password: str,
 ) -> User:
     if not user.check_password(old_password):
-        raise ValidationError('Неверный текущий пароль')
+        raise ValidationError("Неверный текущий пароль")
 
     try:
         validate_password(new_password, user)
     except DjangoValidationError as e:
-        raise ValidationError('; '.join(e.messages))
+        raise ValidationError("; ".join(e.messages))
 
     user.set_password(new_password)
-    user.save(update_fields=['password'])
+    user.save(update_fields=["password"])
 
     return user
 
@@ -152,19 +152,19 @@ def reset_password(*, token: str, new_password: str) -> User:
     token_obj = selectors.get_password_reset_token(token)
 
     if not token_obj.is_valid:
-        raise ValidationError('Токен недействителен или истёк')
+        raise ValidationError("Токен недействителен или истёк")
 
     user = token_obj.user
 
     try:
         validate_password(new_password, user)
     except DjangoValidationError as e:
-        raise ValidationError('; '.join(e.messages))
+        raise ValidationError("; ".join(e.messages))
 
     user.set_password(new_password)
-    user.save(update_fields=['password'])
+    user.save(update_fields=["password"])
 
     token_obj.is_used = True
-    token_obj.save(update_fields=['is_used'])
+    token_obj.save(update_fields=["is_used"])
 
     return user

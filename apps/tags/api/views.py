@@ -1,18 +1,17 @@
+from drf_spectacular.utils import OpenApiExample
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import OpenApiExample
-
-from core.exceptions import NotFoundError
-from core.api_docs import (
-    list_endpoint_schema,
-    create_endpoint_schema,
-    retrieve_endpoint_schema,
-    update_endpoint_schema,
-    delete_endpoint_schema,
-)
 
 from apps.projects import selectors as project_selectors
+from core.api_docs import (
+    create_endpoint_schema,
+    delete_endpoint_schema,
+    list_endpoint_schema,
+    retrieve_endpoint_schema,
+    update_endpoint_schema,
+)
+from core.exceptions import NotFoundError
 
 from .. import selectors, services
 from ..models import Tag
@@ -33,33 +32,34 @@ class TagViewSet(viewsets.GenericViewSet):
     - Просмотр: все участники проекта
     - Создание/редактирование/удаление: admin, owner
     """
+
     queryset = Tag.objects.all()
     serializer_class = TagDetailSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
+        if self.action == "list":
             return [IsAuthenticated(), CanViewTag()]
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return [IsAuthenticated(), CanViewTag()]
-        if self.action == 'create':
+        if self.action == "create":
             return [IsAuthenticated(), CanManageTag()]
-        if self.action == 'partial_update':
+        if self.action == "partial_update":
             return [IsAuthenticated(), CanViewTag(), CanManageTag()]
-        if self.action == 'destroy':
+        if self.action == "destroy":
             return [IsAuthenticated(), CanViewTag(), CanManageTag()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return TagListSerializer
-        if self.action == 'create':
+        if self.action == "create":
             return TagCreateSerializer
-        if self.action == 'partial_update':
+        if self.action == "partial_update":
             return TagUpdateSerializer
         return TagDetailSerializer
 
     def get_project(self):
-        project_id = self.kwargs.get('project_pk')
+        project_id = self.kwargs.get("project_pk")
         return project_selectors.get_by_id(project_id)
 
     def get_queryset(self):
@@ -67,12 +67,12 @@ class TagViewSet(viewsets.GenericViewSet):
         return selectors.filter_by_project(project)
 
     def get_object(self):
-        tag_id = self.kwargs.get('pk')
+        tag_id = self.kwargs.get("pk")
         tag = selectors.get_by_id(tag_id)
 
-        project_id = self.kwargs.get('project_pk')
+        project_id = self.kwargs.get("project_pk")
         if tag.project_id != int(project_id):
-            raise NotFoundError('Тег не найден в этом проекте')
+            raise NotFoundError("Тег не найден в этом проекте")
 
         self.check_object_permissions(self.request, tag)
         return tag
@@ -80,7 +80,7 @@ class TagViewSet(viewsets.GenericViewSet):
     @list_endpoint_schema(
         summary="Список тегов проекта",
         description="Возвращает список всех тегов проекта.",
-        tags=['tags'],
+        tags=["tags"],
     )
     def list(self, request, project_pk=None):
         queryset = self.get_queryset()
@@ -94,11 +94,11 @@ class TagViewSet(viewsets.GenericViewSet):
     @create_endpoint_schema(
         summary="Создать тег",
         description="Создаёт новый тег для проекта. Имя должно быть уникальным в рамках проекта. Доступно admin и owner.",
-        tags=['tags'],
+        tags=["tags"],
         request_examples=[
             OpenApiExample(
-                name='CreateTagRequest',
-                value={'name': 'bug', 'color': '#FF5733'},
+                name="CreateTagRequest",
+                value={"name": "bug", "color": "#FF5733"},
                 request_only=True,
             ),
         ],
@@ -121,7 +121,7 @@ class TagViewSet(viewsets.GenericViewSet):
     @retrieve_endpoint_schema(
         summary="Детали тега",
         description="Возвращает подробную информацию о теге.",
-        tags=['tags'],
+        tags=["tags"],
     )
     def retrieve(self, request, project_pk=None, pk=None):
         tag = self.get_object()
@@ -131,11 +131,11 @@ class TagViewSet(viewsets.GenericViewSet):
     @update_endpoint_schema(
         summary="Обновить тег",
         description="Обновляет информацию о теге. Доступно admin и owner.",
-        tags=['tags'],
+        tags=["tags"],
         request_examples=[
             OpenApiExample(
-                name='UpdateTagRequest',
-                value={'name': 'critical-bug', 'color': '#DC2626'},
+                name="UpdateTagRequest",
+                value={"name": "critical-bug", "color": "#DC2626"},
                 request_only=True,
             ),
         ],
@@ -152,7 +152,7 @@ class TagViewSet(viewsets.GenericViewSet):
     @delete_endpoint_schema(
         summary="Удалить тег",
         description="Удаляет тег. Тег автоматически убирается из всех задач. Доступно admin и owner.",
-        tags=['tags'],
+        tags=["tags"],
     )
     def destroy(self, request, project_pk=None, pk=None):
         tag = self.get_object()

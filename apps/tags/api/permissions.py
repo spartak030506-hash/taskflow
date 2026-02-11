@@ -5,7 +5,7 @@ from apps.projects import selectors as project_selectors
 
 class CanViewTag(permissions.BasePermission):
     def has_permission(self, request, view):
-        project_id = view.kwargs.get('project_pk')
+        project_id = view.kwargs.get("project_pk")
         if not project_id:
             return False
         project = project_selectors.get_by_id(project_id)
@@ -14,7 +14,7 @@ class CanViewTag(permissions.BasePermission):
 
 class CanManageTag(permissions.BasePermission):
     def has_permission(self, request, view):
-        project_id = view.kwargs.get('project_pk')
+        project_id = view.kwargs.get("project_pk")
         if not project_id:
             return False
         project = project_selectors.get_by_id(project_id)

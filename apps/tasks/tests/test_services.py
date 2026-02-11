@@ -1,13 +1,15 @@
-import pytest
+from datetime import timedelta
 from unittest.mock import patch
-from datetime import datetime, timedelta
+
+import pytest
 from django.utils import timezone
 
-from apps.tasks import services
-from apps.tasks.models import Task
 from apps.projects.models import ProjectMember
 from apps.projects.tests.factories import ProjectFactory, ProjectMemberFactory
+from apps.tasks import services
+from apps.tasks.models import Task
 from apps.users.tests.factories import UserFactory
+
 from .factories import TaskFactory
 
 
@@ -20,12 +22,12 @@ class TestCreateTask:
         task = services.create_task(
             project=project,
             creator=creator,
-            title='Test Task',
-            description='Description',
+            title="Test Task",
+            description="Description",
         )
 
-        assert task.title == 'Test Task'
-        assert task.description == 'Description'
+        assert task.title == "Test Task"
+        assert task.description == "Description"
         assert task.creator == creator
         assert task.project == project
         assert task.status == Task.Status.PENDING
@@ -37,7 +39,7 @@ class TestCreateTask:
         task = services.create_task(
             project=project,
             creator=project.owner,
-            title='New Task',
+            title="New Task",
         )
 
         assert task.position == 6
@@ -48,11 +50,11 @@ class TestCreateTask:
         assignee = UserFactory(is_verified=True)
         ProjectMemberFactory(project=project, user=assignee, role=ProjectMember.Role.MEMBER)
 
-        with patch('apps.tasks.services.send_task_assigned_email.delay') as mock_email:
+        with patch("apps.tasks.services.send_task_assigned_email.delay") as mock_email:
             task = services.create_task(
                 project=project,
                 creator=project.owner,
-                title='Task',
+                title="Task",
                 assignee=assignee,
             )
 
@@ -63,18 +65,18 @@ class TestCreateTask:
 @pytest.mark.django_db
 class TestUpdateTask:
     def test_update_task_title(self):
-        task = TaskFactory(title='Old')
+        task = TaskFactory(title="Old")
 
-        result = services.update_task(task=task, title='New')
+        result = services.update_task(task=task, title="New")
 
-        assert result.title == 'New'
+        assert result.title == "New"
 
     def test_update_task_description(self):
-        task = TaskFactory(description='Old')
+        task = TaskFactory(description="Old")
 
-        result = services.update_task(task=task, description='New')
+        result = services.update_task(task=task, description="New")
 
-        assert result.description == 'New'
+        assert result.description == "New"
 
     def test_update_task_priority(self):
         task = TaskFactory(priority=Task.Priority.LOW)
@@ -133,7 +135,7 @@ class TestChangeStatus:
         ProjectMemberFactory(project=project, user=assignee, role=ProjectMember.Role.MEMBER)
         task = TaskFactory(project=project, assignee=assignee, status=Task.Status.PENDING)
 
-        with patch('apps.tasks.services.send_task_status_changed_email.delay') as mock_email:
+        with patch("apps.tasks.services.send_task_status_changed_email.delay") as mock_email:
             services.change_status(task=task, new_status=Task.Status.IN_PROGRESS)
 
         mock_email.assert_called_once()
@@ -148,7 +150,7 @@ class TestAssignTask:
         ProjectMemberFactory(project=project, user=assignee, role=ProjectMember.Role.MEMBER)
         task = TaskFactory(project=project, assignee=None)
 
-        with patch('apps.tasks.services.send_task_assigned_email.delay') as mock_email:
+        with patch("apps.tasks.services.send_task_assigned_email.delay") as mock_email:
             result = services.assign_task(
                 task=task,
                 assignee=assignee,
@@ -165,7 +167,7 @@ class TestAssignTask:
         ProjectMemberFactory(project=project, user=assignee, role=ProjectMember.Role.MEMBER)
         task = TaskFactory(project=project, assignee=assignee)
 
-        with patch('apps.tasks.services.send_task_unassigned_email.delay') as mock_email:
+        with patch("apps.tasks.services.send_task_unassigned_email.delay") as mock_email:
             result = services.assign_task(
                 task=task,
                 assignee=None,
@@ -184,8 +186,8 @@ class TestAssignTask:
         ProjectMemberFactory(project=project, user=new_assignee, role=ProjectMember.Role.MEMBER)
         task = TaskFactory(project=project, assignee=old_assignee)
 
-        with patch('apps.tasks.services.send_task_unassigned_email.delay') as mock_unassign:
-            with patch('apps.tasks.services.send_task_assigned_email.delay') as mock_assign:
+        with patch("apps.tasks.services.send_task_unassigned_email.delay") as mock_unassign:
+            with patch("apps.tasks.services.send_task_assigned_email.delay") as mock_assign:
                 services.assign_task(
                     task=task,
                     assignee=new_assignee,

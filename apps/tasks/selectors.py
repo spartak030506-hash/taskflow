@@ -1,8 +1,4 @@
-from datetime import timedelta
-
-from django.db.models import Avg, Count, F, Max, Q, QuerySet
-from django.db.models.functions import Coalesce
-from django.utils import timezone
+from django.db.models import Max, Q, QuerySet
 
 from apps.projects.models import Project
 from apps.users.models import User
@@ -13,26 +9,33 @@ from .models import Task
 
 def get_by_id(task_id: int) -> Task:
     try:
-        return Task.objects.select_related(
-            'project', 'creator', 'assignee'
-        ).prefetch_related('tags').get(id=task_id)
+        return (
+            Task.objects.select_related("project", "creator", "assignee")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
     except Task.DoesNotExist:
-        raise NotFoundError('Задача не найдена')
+        raise NotFoundError("Задача не найдена")
 
 
 def get_by_id_for_update(task_id: int) -> Task:
     try:
-        return Task.objects.select_for_update().select_related(
-            'project', 'creator', 'assignee'
-        ).prefetch_related('tags').get(id=task_id)
+        return (
+            Task.objects.select_for_update()
+            .select_related("project", "creator", "assignee")
+            .prefetch_related("tags")
+            .get(id=task_id)
+        )
     except Task.DoesNotExist:
-        raise NotFoundError('Задача не найдена')
+        raise NotFoundError("Задача не найдена")
 
 
 def filter_by_project(project: Project) -> QuerySet[Task]:
-    return Task.objects.filter(
-        project=project
-    ).select_related('creator', 'assignee').prefetch_related('tags')
+    return (
+        Task.objects.filter(project=project)
+        .select_related("creator", "assignee")
+        .prefetch_related("tags")
+    )
 
 
 def filter_by_project_with_filters(
@@ -50,15 +53,17 @@ def filter_by_project_with_filters(
     if assignee_id is not None:
         filters &= Q(assignee_id=assignee_id)
 
-    return Task.objects.filter(filters).select_related(
-        'creator', 'assignee'
-    ).prefetch_related('tags')
+    return (
+        Task.objects.filter(filters).select_related("creator", "assignee").prefetch_related("tags")
+    )
 
 
 def filter_assigned_to_user(user: User) -> QuerySet[Task]:
-    return Task.objects.filter(
-        assignee=user
-    ).select_related('project', 'creator').prefetch_related('tags')
+    return (
+        Task.objects.filter(assignee=user)
+        .select_related("project", "creator")
+        .prefetch_related("tags")
+    )
 
 
 def exists_task_in_project(project: Project, task_id: int) -> bool:
@@ -66,10 +71,8 @@ def exists_task_in_project(project: Project, task_id: int) -> bool:
 
 
 def get_max_position(project: Project) -> int:
-    result = Task.objects.filter(project=project).aggregate(
-        max_position=Max('position')
-    )
-    return result['max_position'] or 0
+    result = Task.objects.filter(project=project).aggregate(max_position=Max("position"))
+    return result["max_position"] or 0
 
 
 # def filter_overdue_tasks(project: Project) -> QuerySet[Task]:

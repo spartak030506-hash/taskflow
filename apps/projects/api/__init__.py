@@ -1,33 +1,31 @@
+from .permissions import (
+    IsProjectAdminOrOwner,
+    IsProjectMember,
+    IsProjectOwner,
+)
+from .serializers import (
+    ProjectCreateSerializer,
+    ProjectDetailSerializer,
+    ProjectListSerializer,
+    ProjectMemberCreateSerializer,
+    ProjectMemberSerializer,
+    ProjectMemberUpdateSerializer,
+    ProjectUpdateSerializer,
+)
 from .views import (
     ProjectViewSet,
 )
 
-from .serializers import (
-    ProjectListSerializer,
-    ProjectDetailSerializer,
-    ProjectCreateSerializer,
-    ProjectUpdateSerializer,
-    ProjectMemberSerializer,
-    ProjectMemberCreateSerializer,
-    ProjectMemberUpdateSerializer,
-)
-
-from .permissions import (
-    IsProjectMember,
-    IsProjectAdminOrOwner,
-    IsProjectOwner,
-)
-
 __all__ = [
-    'ProjectViewSet',
-    'ProjectListSerializer',
-    'ProjectDetailSerializer',
-    'ProjectCreateSerializer',
-    'ProjectUpdateSerializer',
-    'ProjectMemberSerializer',
-    'ProjectMemberCreateSerializer',
-    'ProjectMemberUpdateSerializer',
-    'IsProjectMember',
-    'IsProjectAdminOrOwner',
-    'IsProjectOwner',
+    "ProjectViewSet",
+    "ProjectListSerializer",
+    "ProjectDetailSerializer",
+    "ProjectCreateSerializer",
+    "ProjectUpdateSerializer",
+    "ProjectMemberSerializer",
+    "ProjectMemberCreateSerializer",
+    "ProjectMemberUpdateSerializer",
+    "IsProjectMember",
+    "IsProjectAdminOrOwner",
+    "IsProjectOwner",
 ]

@@ -11,48 +11,48 @@ from .managers import UserManager
 
 class User(AbstractUser):
     username = None
-    email = models.EmailField('Email', unique=True, db_index=True)
-    first_name = models.CharField('Имя', max_length=150)
-    last_name = models.CharField('Фамилия', max_length=150)
-    avatar = models.ImageField('Аватар', upload_to='avatars/', blank=True)
-    phone = models.CharField('Телефон', max_length=20, blank=True)
-    bio = models.TextField('О себе', max_length=500, blank=True)
-    is_verified = models.BooleanField('Email подтверждён', default=False)
+    email = models.EmailField("Email", unique=True, db_index=True)
+    first_name = models.CharField("Имя", max_length=150)
+    last_name = models.CharField("Фамилия", max_length=150)
+    avatar = models.ImageField("Аватар", upload_to="avatars/", blank=True)
+    phone = models.CharField("Телефон", max_length=20, blank=True)
+    bio = models.TextField("О себе", max_length=500, blank=True)
+    is_verified = models.BooleanField("Email подтверждён", default=False)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["first_name", "last_name"]
 
     objects = UserManager()
 
     class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
-        ordering = ['-date_joined']
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+        ordering = ["-date_joined"]
 
     def __str__(self):
         return self.email
 
     def get_full_name(self):
-        return f'{self.first_name} {self.last_name}'.strip()
+        return f"{self.first_name} {self.last_name}".strip()
 
 
 class EmailVerificationToken(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='verification_tokens',
-        verbose_name='Пользователь',
+        related_name="verification_tokens",
+        verbose_name="Пользователь",
     )
-    token = models.CharField('Токен', max_length=64, unique=True, db_index=True)
-    created_at = models.DateTimeField('Создан', auto_now_add=True)
-    expires_at = models.DateTimeField('Истекает')
+    token = models.CharField("Токен", max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField("Создан", auto_now_add=True)
+    expires_at = models.DateTimeField("Истекает")
 
     class Meta:
-        verbose_name = 'Токен верификации email'
-        verbose_name_plural = 'Токены верификации email'
+        verbose_name = "Токен верификации email"
+        verbose_name_plural = "Токены верификации email"
 
     def __str__(self):
-        return f'Verification token for {self.user.email}'
+        return f"Verification token for {self.user.email}"
 
     @classmethod
     def create_for_user(cls, user):
@@ -70,20 +70,20 @@ class PasswordResetToken(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='password_reset_tokens',
-        verbose_name='Пользователь',
+        related_name="password_reset_tokens",
+        verbose_name="Пользователь",
     )
-    token = models.CharField('Токен', max_length=64, unique=True, db_index=True)
-    created_at = models.DateTimeField('Создан', auto_now_add=True)
-    expires_at = models.DateTimeField('Истекает')
-    is_used = models.BooleanField('Использован', default=False)
+    token = models.CharField("Токен", max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField("Создан", auto_now_add=True)
+    expires_at = models.DateTimeField("Истекает")
+    is_used = models.BooleanField("Использован", default=False)
 
     class Meta:
-        verbose_name = 'Токен сброса пароля'
-        verbose_name_plural = 'Токены сброса пароля'
+        verbose_name = "Токен сброса пароля"
+        verbose_name_plural = "Токены сброса пароля"
 
     def __str__(self):
-        return f'Password reset token for {self.user.email}'
+        return f"Password reset token for {self.user.email}"
 
     @classmethod
     def create_for_user(cls, user):

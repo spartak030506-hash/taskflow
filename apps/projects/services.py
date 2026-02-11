@@ -17,7 +17,7 @@ from .tasks import (
 
 
 @transaction.atomic
-def create_project(*, owner: User, name: str, description: str = '') -> Project:
+def create_project(*, owner: User, name: str, description: str = "") -> Project:
     project = Project.objects.create(
         owner=owner,
         name=name,
@@ -40,15 +40,15 @@ def update_project(
     name: str | None = None,
     description: str | None = None,
 ) -> Project:
-    update_fields = ['updated_at']
+    update_fields = ["updated_at"]
 
     if name is not None:
         project.name = name
-        update_fields.append('name')
+        update_fields.append("name")
 
     if description is not None:
         project.description = description
-        update_fields.append('description')
+        update_fields.append("description")
 
     project.save(update_fields=update_fields)
 
@@ -62,7 +62,7 @@ def update_project(
 def delete_project(*, project: Project) -> None:
     _project_id = project.id
     _member_user_ids = list(
-        ProjectMember.objects.filter(project=project).values_list('user_id', flat=True)
+        ProjectMember.objects.filter(project=project).values_list("user_id", flat=True)
     )
 
     project.delete()
@@ -78,7 +78,7 @@ def delete_project(*, project: Project) -> None:
 @transaction.atomic
 def archive_project(*, project: Project) -> Project:
     project.status = Project.Status.ARCHIVED
-    project.save(update_fields=['status', 'updated_at'])
+    project.save(update_fields=["status", "updated_at"])
 
     _project_id = project.id
     transaction.on_commit(lambda: invalidate_project_cache(_project_id))
@@ -94,10 +94,10 @@ def add_member(
     role: str = ProjectMember.Role.MEMBER,
 ) -> ProjectMember:
     if selectors.exists_member(project, user):
-        raise ConflictError('Пользователь уже является участником проекта')
+        raise ConflictError("Пользователь уже является участником проекта")
 
     if role == ProjectMember.Role.OWNER:
-        raise ValidationError('Нельзя добавить участника с ролью владельца')
+        raise ValidationError("Нельзя добавить участника с ролью владельца")
 
     member = ProjectMember.objects.create(
         project=project,
@@ -121,14 +121,14 @@ def add_member(
 @transaction.atomic
 def update_member_role(*, membership: ProjectMember, role: str) -> ProjectMember:
     if membership.role == ProjectMember.Role.OWNER:
-        raise ValidationError('Нельзя изменить роль владельца проекта')
+        raise ValidationError("Нельзя изменить роль владельца проекта")
 
     if role == ProjectMember.Role.OWNER:
-        raise ValidationError('Нельзя назначить роль владельца')
+        raise ValidationError("Нельзя назначить роль владельца")
 
     old_role = membership.role
     membership.role = role
-    membership.save(update_fields=['role'])
+    membership.save(update_fields=["role"])
 
     _user_id = membership.user_id
     _project_id = membership.project_id
@@ -147,7 +147,7 @@ def update_member_role(*, membership: ProjectMember, role: str) -> ProjectMember
 @transaction.atomic
 def remove_member(*, membership: ProjectMember) -> None:
     if membership.role == ProjectMember.Role.OWNER:
-        raise ValidationError('Нельзя удалить владельца из проекта')
+        raise ValidationError("Нельзя удалить владельца из проекта")
 
     _user_id = membership.user_id
     _project_id = membership.project_id
@@ -167,7 +167,7 @@ def leave_project(*, project: Project, user: User) -> None:
     membership = selectors.get_member(project, user)
 
     if membership.role == ProjectMember.Role.OWNER:
-        raise ValidationError('Владелец не может покинуть проект')
+        raise ValidationError("Владелец не может покинуть проект")
 
     _project_id = project.id
     _user_id = user.id

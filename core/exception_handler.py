@@ -4,10 +4,10 @@ from rest_framework.views import exception_handler
 
 from .exceptions import (
     BaseServiceError,
+    ConflictError,
     NotFoundError,
     PermissionDeniedError,
     ValidationError,
-    ConflictError,
 )
 
 
@@ -32,8 +32,8 @@ def custom_exception_handler(exc, context):
 
     return Response(
         {
-            'error': exc.__class__.__name__,
-            'message': exc.message,
+            "error": exc.__class__.__name__,
+            "message": exc.message,
             **exc.extra,
         },
         status=status_code,

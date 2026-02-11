@@ -1,8 +1,9 @@
-import pytest
 from datetime import timedelta
+
+import pytest
 from django.utils import timezone
 
-from .factories import UserFactory, EmailVerificationTokenFactory, PasswordResetTokenFactory
+from .factories import EmailVerificationTokenFactory, PasswordResetTokenFactory, UserFactory
 
 
 @pytest.fixture
@@ -30,10 +31,7 @@ def user_with_verification_token(db):
 @pytest.fixture
 def user_with_expired_verification_token(db):
     user = UserFactory(is_verified=False)
-    token = EmailVerificationTokenFactory(
-        user=user,
-        expires_at=timezone.now() - timedelta(hours=1)
-    )
+    token = EmailVerificationTokenFactory(user=user, expires_at=timezone.now() - timedelta(hours=1))
     return user, token
 
 
@@ -47,10 +45,7 @@ def user_with_password_reset_token(db):
 @pytest.fixture
 def user_with_expired_password_reset_token(db):
     user = UserFactory(is_verified=True)
-    token = PasswordResetTokenFactory(
-        user=user,
-        expires_at=timezone.now() - timedelta(hours=1)
-    )
+    token = PasswordResetTokenFactory(user=user, expires_at=timezone.now() - timedelta(hours=1))
     return user, token
 
 

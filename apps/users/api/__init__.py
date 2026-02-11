@@ -1,41 +1,39 @@
-from .views import (
-    UserViewSet,
-    RegisterView,
-    VerifyEmailView,
-    ResendVerificationView,
-    RequestPasswordResetView,
-    ResetPasswordView,
-)
-
-from .serializers import (
-    UserListSerializer,
-    UserDetailSerializer,
-    UserUpdateSerializer,
-    RegisterSerializer,
-    ChangePasswordSerializer,
-    RequestPasswordResetSerializer,
-    ResetPasswordSerializer,
-    VerifyEmailSerializer,
-)
-
 from .permissions import (
     IsOwner,
 )
+from .serializers import (
+    ChangePasswordSerializer,
+    RegisterSerializer,
+    RequestPasswordResetSerializer,
+    ResetPasswordSerializer,
+    UserDetailSerializer,
+    UserListSerializer,
+    UserUpdateSerializer,
+    VerifyEmailSerializer,
+)
+from .views import (
+    RegisterView,
+    RequestPasswordResetView,
+    ResendVerificationView,
+    ResetPasswordView,
+    UserViewSet,
+    VerifyEmailView,
+)
 
 __all__ = [
-    'UserViewSet',
-    'RegisterView',
-    'VerifyEmailView',
-    'ResendVerificationView',
-    'RequestPasswordResetView',
-    'ResetPasswordView',
-    'UserListSerializer',
-    'UserDetailSerializer',
-    'UserUpdateSerializer',
-    'RegisterSerializer',
-    'ChangePasswordSerializer',
-    'RequestPasswordResetSerializer',
-    'ResetPasswordSerializer',
-    'VerifyEmailSerializer',
-    'IsOwner',
+    "UserViewSet",
+    "RegisterView",
+    "VerifyEmailView",
+    "ResendVerificationView",
+    "RequestPasswordResetView",
+    "ResetPasswordView",
+    "UserListSerializer",
+    "UserDetailSerializer",
+    "UserUpdateSerializer",
+    "RegisterSerializer",
+    "ChangePasswordSerializer",
+    "RequestPasswordResetSerializer",
+    "ResetPasswordSerializer",
+    "VerifyEmailSerializer",
+    "IsOwner",
 ]

@@ -11,11 +11,11 @@ class CommentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            'id',
-            'author',
-            'content',
-            'is_edited',
-            'created_at',
+            "id",
+            "author",
+            "content",
+            "is_edited",
+            "created_at",
         ]
         read_only_fields = fields
 
@@ -26,28 +26,24 @@ class CommentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            'id',
-            'task_id',
-            'author',
-            'content',
-            'is_edited',
-            'created_at',
-            'updated_at',
+            "id",
+            "task_id",
+            "author",
+            "content",
+            "is_edited",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = fields
 
 
 class CommentCreateSerializer(serializers.Serializer):
     content = serializers.CharField(
-        min_length=1,
-        max_length=10000,
-        help_text="Текст комментария (1-10000 символов)"
+        min_length=1, max_length=10000, help_text="Текст комментария (1-10000 символов)"
     )
 
 
 class CommentUpdateSerializer(serializers.Serializer):
     content = serializers.CharField(
-        min_length=1,
-        max_length=10000,
-        help_text="Текст комментария (1-10000 символов)"
+        min_length=1, max_length=10000, help_text="Текст комментария (1-10000 символов)"
     )

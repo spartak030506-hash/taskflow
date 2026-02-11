@@ -1,13 +1,13 @@
 import logging
-import time
 import random
+import time
 
 from django.core.cache import cache
 from redis.exceptions import ConnectionError
 
 logger = logging.getLogger(__name__)
 
-CACHE_VERSION = 'v1'
+CACHE_VERSION = "v1"
 
 
 class CacheTTL:
@@ -17,21 +17,21 @@ class CacheTTL:
 
 
 class CacheKeys:
-    PROJECT_DETAIL = f'{CACHE_VERSION}:projects:detail:{{project_id}}'
-    MEMBER_ROLE = f'{CACHE_VERSION}:projects:member_role:{{project_id}}:{{user_id}}'
-    EXISTS_MEMBER = f'{CACHE_VERSION}:projects:exists_member:{{project_id}}:{{user_id}}'
-    IS_ADMIN_OR_OWNER = f'{CACHE_VERSION}:projects:is_admin_or_owner:{{project_id}}:{{user_id}}'
+    PROJECT_DETAIL = f"{CACHE_VERSION}:projects:detail:{{project_id}}"
+    MEMBER_ROLE = f"{CACHE_VERSION}:projects:member_role:{{project_id}}:{{user_id}}"
+    EXISTS_MEMBER = f"{CACHE_VERSION}:projects:exists_member:{{project_id}}:{{user_id}}"
+    IS_ADMIN_OR_OWNER = f"{CACHE_VERSION}:projects:is_admin_or_owner:{{project_id}}:{{user_id}}"
 
 
-CACHE_NONE_SENTINEL = '__CACHE_NONE__'
-CACHE_FALSE_SENTINEL = '__CACHE_FALSE__'
+CACHE_NONE_SENTINEL = "__CACHE_NONE__"
+CACHE_FALSE_SENTINEL = "__CACHE_FALSE__"
 
 
 def safe_cache_get(key: str, default=None):
     try:
         return cache.get(key, default=default)
     except ConnectionError:
-        logger.warning('Redis unavailable on get', extra={'key': key})
+        logger.warning("Redis unavailable on get", extra={"key": key})
         return default
 
 
@@ -40,7 +40,7 @@ def safe_cache_set(key: str, value, ttl: int) -> bool:
         cache.set(key, value, ttl)
         return True
     except ConnectionError:
-        logger.warning('Redis unavailable on set', extra={'key': key})
+        logger.warning("Redis unavailable on set", extra={"key": key})
         return False
 
 

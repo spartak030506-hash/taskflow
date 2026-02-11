@@ -11,12 +11,12 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id',
-            'name',
-            'status',
-            'owner_id',
-            'members_count',
-            'created_at',
+            "id",
+            "name",
+            "status",
+            "owner_id",
+            "members_count",
+            "created_at",
         ]
         read_only_fields = fields
 
@@ -28,46 +28,34 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id',
-            'name',
-            'description',
-            'status',
-            'owner',
-            'members_count',
-            'created_at',
-            'updated_at',
+            "id",
+            "name",
+            "description",
+            "status",
+            "owner",
+            "members_count",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = fields
 
     def get_members_count(self, obj) -> int:
-        if hasattr(obj, 'members_count'):
+        if hasattr(obj, "members_count"):
             return obj.members_count
         return obj.members.count()
 
 
 class ProjectCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(
-        max_length=255,
-        help_text="Название проекта"
-    )
+    name = serializers.CharField(max_length=255, help_text="Название проекта")
     description = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        default='',
-        help_text="Описание проекта"
+        required=False, allow_blank=True, default="", help_text="Описание проекта"
     )
 
 
 class ProjectUpdateSerializer(serializers.Serializer):
-    name = serializers.CharField(
-        max_length=255,
-        required=False,
-        help_text="Название проекта"
-    )
+    name = serializers.CharField(max_length=255, required=False, help_text="Название проекта")
     description = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        help_text="Описание проекта"
+        required=False, allow_blank=True, help_text="Описание проекта"
     )
 
 
@@ -77,36 +65,35 @@ class ProjectMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectMember
         fields = [
-            'id',
-            'user',
-            'role',
-            'joined_at',
+            "id",
+            "user",
+            "role",
+            "joined_at",
         ]
         read_only_fields = fields
 
 
 class ProjectMemberCreateSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(
-        min_value=1,
-        help_text="ID пользователя для добавления в проект"
+        min_value=1, help_text="ID пользователя для добавления в проект"
     )
     role = serializers.ChoiceField(
         choices=[
-            (ProjectMember.Role.ADMIN, 'Администратор'),
-            (ProjectMember.Role.MEMBER, 'Участник'),
-            (ProjectMember.Role.VIEWER, 'Наблюдатель'),
+            (ProjectMember.Role.ADMIN, "Администратор"),
+            (ProjectMember.Role.MEMBER, "Участник"),
+            (ProjectMember.Role.VIEWER, "Наблюдатель"),
         ],
         default=ProjectMember.Role.MEMBER,
-        help_text="Роль участника: admin, member, viewer"
+        help_text="Роль участника: admin, member, viewer",
     )
 
 
 class ProjectMemberUpdateSerializer(serializers.Serializer):
     role = serializers.ChoiceField(
         choices=[
-            (ProjectMember.Role.ADMIN, 'Администратор'),
-            (ProjectMember.Role.MEMBER, 'Участник'),
-            (ProjectMember.Role.VIEWER, 'Наблюдатель'),
+            (ProjectMember.Role.ADMIN, "Администратор"),
+            (ProjectMember.Role.MEMBER, "Участник"),
+            (ProjectMember.Role.VIEWER, "Наблюдатель"),
         ],
-        help_text="Новая роль участника: admin, member, viewer"
+        help_text="Новая роль участника: admin, member, viewer",
     )

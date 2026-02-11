@@ -29,21 +29,19 @@ def create_comment(
 
     if task.assignee_id and task.assignee_id != author.id:
         transaction.on_commit(
-            lambda: send_comment_notification_to_assignee.delay(
-                _comment_id, _task_id, _author_id
-            )
+            lambda: send_comment_notification_to_assignee.delay(_comment_id, _task_id, _author_id)
         )
 
     if task.creator_id != author.id and task.creator_id != task.assignee_id:
         transaction.on_commit(
-            lambda: send_comment_notification_to_creator.delay(
-                _comment_id, _task_id, _author_id
-            )
+            lambda: send_comment_notification_to_creator.delay(_comment_id, _task_id, _author_id)
         )
 
     def _broadcast():
         from apps.websocket.tasks import broadcast_comment_created
+
         broadcast_comment_created.delay(_comment_id, _author_id)
+
     transaction.on_commit(_broadcast)
 
     return comment
@@ -58,14 +56,17 @@ def update_comment(
 ) -> Comment:
     comment.content = content
     comment.is_edited = True
-    comment.save(update_fields=['content', 'is_edited', 'updated_at'])
+    comment.save(update_fields=["content", "is_edited", "updated_at"])
 
     if updated_by:
         _comment_id = comment.id
         _user_id = updated_by.id
+
         def _broadcast():
             from apps.websocket.tasks import broadcast_comment_updated
+
             broadcast_comment_updated.delay(_comment_id, _user_id)
+
         transaction.on_commit(_broadcast)
 
     return comment
@@ -81,9 +82,10 @@ def delete_comment(*, comment: Comment, deleted_by: User | None = None) -> None:
 
     if deleted_by:
         _user_id = deleted_by.id
+
         def _broadcast():
             from apps.websocket.tasks import broadcast_comment_deleted
-            broadcast_comment_deleted.delay(
-                _comment_id, _task_id, _project_id, _user_id
-            )
+
+            broadcast_comment_deleted.delay(_comment_id, _task_id, _project_id, _user_id)
+
         transaction.on_commit(_broadcast)

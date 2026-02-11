@@ -10,12 +10,14 @@ def api_client():
 @pytest.fixture
 def user(db):
     from apps.users.tests.factories import UserFactory
+
     return UserFactory(is_verified=True)
 
 
 @pytest.fixture
 def verified_user(db):
     from apps.users.tests.factories import UserFactory
+
     return UserFactory(is_verified=True)
 
 

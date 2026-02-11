@@ -9,52 +9,42 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id',
-            'email',
-            'first_name',
-            'last_name',
-            'avatar',
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "avatar",
         ]
         read_only_fields = fields
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    full_name = serializers.CharField(source="get_full_name", read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id',
-            'email',
-            'first_name',
-            'last_name',
-            'full_name',
-            'avatar',
-            'phone',
-            'bio',
-            'is_verified',
-            'date_joined',
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "full_name",
+            "avatar",
+            "phone",
+            "bio",
+            "is_verified",
+            "date_joined",
         ]
         read_only_fields = fields
 
 
 class RegisterSerializer(serializers.Serializer):
-    email = serializers.EmailField(
-        help_text="Email пользователя (используется для входа)"
-    )
+    email = serializers.EmailField(help_text="Email пользователя (используется для входа)")
     password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        help_text="Пароль (минимум 8 символов)"
+        write_only=True, min_length=8, help_text="Пароль (минимум 8 символов)"
     )
-    first_name = serializers.CharField(
-        max_length=150,
-        help_text="Имя"
-    )
-    last_name = serializers.CharField(
-        max_length=150,
-        help_text="Фамилия"
-    )
+    first_name = serializers.CharField(max_length=150, help_text="Имя")
+    last_name = serializers.CharField(max_length=150, help_text="Фамилия")
 
     def validate_email(self, value):
         return value.lower()
@@ -68,44 +58,26 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class UserUpdateSerializer(serializers.Serializer):
-    first_name = serializers.CharField(
-        max_length=150,
-        required=False,
-        help_text="Имя"
-    )
-    last_name = serializers.CharField(
-        max_length=150,
-        required=False,
-        help_text="Фамилия"
-    )
+    first_name = serializers.CharField(max_length=150, required=False, help_text="Имя")
+    last_name = serializers.CharField(max_length=150, required=False, help_text="Фамилия")
     phone = serializers.CharField(
-        max_length=20,
-        required=False,
-        allow_blank=True,
-        help_text="Номер телефона"
+        max_length=20, required=False, allow_blank=True, help_text="Номер телефона"
     )
     bio = serializers.CharField(
         max_length=500,
         required=False,
         allow_blank=True,
-        help_text="Биография (максимум 500 символов)"
+        help_text="Биография (максимум 500 символов)",
     )
     avatar = serializers.ImageField(
-        required=False,
-        allow_null=True,
-        help_text="Аватар пользователя"
+        required=False, allow_null=True, help_text="Аватар пользователя"
     )
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(
-        write_only=True,
-        help_text="Текущий пароль"
-    )
+    old_password = serializers.CharField(write_only=True, help_text="Текущий пароль")
     new_password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        help_text="Новый пароль (минимум 8 символов)"
+        write_only=True, min_length=8, help_text="Новый пароль (минимум 8 символов)"
     )
 
     def validate_new_password(self, value):
@@ -117,22 +89,16 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class RequestPasswordResetSerializer(serializers.Serializer):
-    email = serializers.EmailField(
-        help_text="Email для восстановления пароля"
-    )
+    email = serializers.EmailField(help_text="Email для восстановления пароля")
 
     def validate_email(self, value):
         return value.lower()
 
 
 class ResetPasswordSerializer(serializers.Serializer):
-    token = serializers.CharField(
-        help_text="Токен восстановления пароля из email"
-    )
+    token = serializers.CharField(help_text="Токен восстановления пароля из email")
     new_password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        help_text="Новый пароль (минимум 8 символов)"
+        write_only=True, min_length=8, help_text="Новый пароль (минимум 8 символов)"
     )
 
     def validate_new_password(self, value):
@@ -144,6 +110,4 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 class VerifyEmailSerializer(serializers.Serializer):
-    token = serializers.CharField(
-        help_text="Токен верификации email из письма"
-    )
+    token = serializers.CharField(help_text="Токен верификации email из письма")

@@ -1,27 +1,26 @@
-from typing import List, Optional
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 
-from .responses import (
-    ValidationErrorResponse,
-    NotFoundErrorResponse,
-    PermissionDeniedErrorResponse,
-    ConflictErrorResponse,
-)
 from .examples import (
-    VALIDATION_ERROR_EXAMPLE,
+    CONFLICT_ERROR_EXAMPLE,
     NOT_FOUND_ERROR_EXAMPLE,
     PERMISSION_DENIED_ERROR_EXAMPLE,
-    CONFLICT_ERROR_EXAMPLE,
+    VALIDATION_ERROR_EXAMPLE,
+)
+from .responses import (
+    ConflictErrorResponse,
+    NotFoundErrorResponse,
+    PermissionDeniedErrorResponse,
+    ValidationErrorResponse,
 )
 
 
 def list_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
-    parameters: Optional[List[OpenApiParameter]] = None,
-    examples: Optional[List[OpenApiExample]] = None,
+    tags: list[str],
+    parameters: list[OpenApiParameter] | None = None,
+    examples: list[OpenApiExample] | None = None,
 ):
     return extend_schema(
         summary=summary,
@@ -31,7 +30,7 @@ def list_endpoint_schema(
         examples=examples or [],
         responses={
             status.HTTP_200_OK: None,
-            status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+            status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
             status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
                 examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
             ),
@@ -42,9 +41,9 @@ def list_endpoint_schema(
 def create_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
-    request_examples: Optional[List[OpenApiExample]] = None,
-    response_examples: Optional[List[OpenApiExample]] = None,
+    tags: list[str],
+    request_examples: list[OpenApiExample] | None = None,
+    response_examples: list[OpenApiExample] | None = None,
 ):
     return extend_schema(
         summary=summary,
@@ -56,13 +55,11 @@ def create_endpoint_schema(
             status.HTTP_400_BAD_REQUEST: ValidationErrorResponse.get(
                 examples=[VALIDATION_ERROR_EXAMPLE]
             ),
-            status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+            status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
             status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
                 examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
             ),
-            status.HTTP_409_CONFLICT: ConflictErrorResponse.get(
-                examples=[CONFLICT_ERROR_EXAMPLE]
-            ),
+            status.HTTP_409_CONFLICT: ConflictErrorResponse.get(examples=[CONFLICT_ERROR_EXAMPLE]),
         },
     )
 
@@ -70,8 +67,8 @@ def create_endpoint_schema(
 def retrieve_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
-    examples: Optional[List[OpenApiExample]] = None,
+    tags: list[str],
+    examples: list[OpenApiExample] | None = None,
 ):
     return extend_schema(
         summary=summary,
@@ -80,7 +77,7 @@ def retrieve_endpoint_schema(
         examples=examples or [],
         responses={
             status.HTTP_200_OK: None,
-            status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+            status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
             status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
                 examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
             ),
@@ -94,9 +91,9 @@ def retrieve_endpoint_schema(
 def update_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
-    request_examples: Optional[List[OpenApiExample]] = None,
-    response_examples: Optional[List[OpenApiExample]] = None,
+    tags: list[str],
+    request_examples: list[OpenApiExample] | None = None,
+    response_examples: list[OpenApiExample] | None = None,
 ):
     return extend_schema(
         summary=summary,
@@ -108,7 +105,7 @@ def update_endpoint_schema(
             status.HTTP_400_BAD_REQUEST: ValidationErrorResponse.get(
                 examples=[VALIDATION_ERROR_EXAMPLE]
             ),
-            status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+            status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
             status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
                 examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
             ),
@@ -122,15 +119,15 @@ def update_endpoint_schema(
 def delete_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
+    tags: list[str],
 ):
     return extend_schema(
         summary=summary,
         description=description,
         tags=tags,
         responses={
-            status.HTTP_204_NO_CONTENT: {'description': 'Успешно удалено'},
-            status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+            status.HTTP_204_NO_CONTENT: {"description": "Успешно удалено"},
+            status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
             status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
                 examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
             ),
@@ -144,24 +141,22 @@ def delete_endpoint_schema(
 def action_endpoint_schema(
     summary: str,
     description: str,
-    tags: List[str],
-    method: str = 'POST',
-    request_examples: Optional[List[OpenApiExample]] = None,
-    response_examples: Optional[List[OpenApiExample]] = None,
-    custom_responses: Optional[dict] = None,
+    tags: list[str],
+    method: str = "POST",
+    request_examples: list[OpenApiExample] | None = None,
+    response_examples: list[OpenApiExample] | None = None,
+    custom_responses: dict | None = None,
 ):
     default_responses = {
         status.HTTP_200_OK: None,
         status.HTTP_400_BAD_REQUEST: ValidationErrorResponse.get(
             examples=[VALIDATION_ERROR_EXAMPLE]
         ),
-        status.HTTP_401_UNAUTHORIZED: {'description': 'Не авторизован'},
+        status.HTTP_401_UNAUTHORIZED: {"description": "Не авторизован"},
         status.HTTP_403_FORBIDDEN: PermissionDeniedErrorResponse.get(
             examples=[PERMISSION_DENIED_ERROR_EXAMPLE]
         ),
-        status.HTTP_404_NOT_FOUND: NotFoundErrorResponse.get(
-            examples=[NOT_FOUND_ERROR_EXAMPLE]
-        ),
+        status.HTTP_404_NOT_FOUND: NotFoundErrorResponse.get(examples=[NOT_FOUND_ERROR_EXAMPLE]),
     }
 
     if custom_responses:

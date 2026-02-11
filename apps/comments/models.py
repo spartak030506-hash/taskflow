@@ -9,26 +9,26 @@ class Comment(TimestampMixin, models.Model):
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Задача',
+        related_name="comments",
+        verbose_name="Задача",
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Автор',
+        related_name="comments",
+        verbose_name="Автор",
     )
-    content = models.TextField('Содержимое')
-    is_edited = models.BooleanField('Редактировалось', default=False)
+    content = models.TextField("Содержимое")
+    is_edited = models.BooleanField("Редактировалось", default=False)
 
     class Meta:
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
-        ordering = ['created_at']
+        verbose_name = "Комментарий"
+        verbose_name_plural = "Комментарии"
+        ordering = ["created_at"]
         indexes = [
-            models.Index(fields=['task', 'created_at']),
-            models.Index(fields=['author']),
+            models.Index(fields=["task", "created_at"]),
+            models.Index(fields=["author"]),
         ]
 
     def __str__(self):
-        return f'Comment {self.id} by {self.author_id} on task {self.task_id}'
+        return f"Comment {self.id} by {self.author_id} on task {self.task_id}"

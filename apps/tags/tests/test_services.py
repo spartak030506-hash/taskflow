@@ -1,10 +1,11 @@
 import pytest
 
+from apps.projects.tests.factories import ProjectFactory
 from apps.tags import services
 from apps.tags.models import Tag
-from apps.projects.tests.factories import ProjectFactory
 from apps.tasks.tests.factories import TaskFactory
-from core.exceptions import ValidationError, ConflictError
+from core.exceptions import ConflictError, ValidationError
+
 from .factories import TagFactory
 
 
@@ -15,12 +16,12 @@ class TestCreateTag:
 
         tag = services.create_tag(
             project=project,
-            name='Bug',
-            color='#FF0000',
+            name="Bug",
+            color="#FF0000",
         )
 
-        assert tag.name == 'Bug'
-        assert tag.color == '#FF0000'
+        assert tag.name == "Bug"
+        assert tag.color == "#FF0000"
         assert tag.project == project
 
     def test_create_tag_default_color(self):
@@ -28,78 +29,78 @@ class TestCreateTag:
 
         tag = services.create_tag(
             project=project,
-            name='Feature',
+            name="Feature",
         )
 
-        assert tag.color == '#6B7280'
+        assert tag.color == "#6B7280"
 
     def test_create_tag_duplicate_name_raises(self):
         project = ProjectFactory()
-        TagFactory(project=project, name='Bug')
+        TagFactory(project=project, name="Bug")
 
         with pytest.raises(ConflictError) as exc_info:
             services.create_tag(
                 project=project,
-                name='Bug',
+                name="Bug",
             )
 
-        assert 'уже существует' in str(exc_info.value)
+        assert "уже существует" in str(exc_info.value)
 
     def test_create_tag_duplicate_name_case_insensitive(self):
         project = ProjectFactory()
-        TagFactory(project=project, name='Bug')
+        TagFactory(project=project, name="Bug")
 
         with pytest.raises(ConflictError):
             services.create_tag(
                 project=project,
-                name='BUG',
+                name="BUG",
             )
 
     def test_create_tag_same_name_different_projects_ok(self):
         project1 = ProjectFactory()
         project2 = ProjectFactory()
-        TagFactory(project=project1, name='Bug')
+        TagFactory(project=project1, name="Bug")
 
         tag = services.create_tag(
             project=project2,
-            name='Bug',
+            name="Bug",
         )
 
-        assert tag.name == 'Bug'
+        assert tag.name == "Bug"
 
 
 @pytest.mark.django_db
 class TestUpdateTag:
     def test_update_tag_name(self):
-        tag = TagFactory(name='Old Name')
+        tag = TagFactory(name="Old Name")
 
-        result = services.update_tag(tag=tag, name='New Name')
+        result = services.update_tag(tag=tag, name="New Name")
 
-        assert result.name == 'New Name'
+        assert result.name == "New Name"
 
     def test_update_tag_color(self):
-        tag = TagFactory(color='#000000')
+        tag = TagFactory(color="#000000")
 
-        result = services.update_tag(tag=tag, color='#FF0000')
+        result = services.update_tag(tag=tag, color="#FF0000")
 
-        assert result.color == '#FF0000'
+        assert result.color == "#FF0000"
 
     def test_update_tag_duplicate_name_raises(self):
         project = ProjectFactory()
-        TagFactory(project=project, name='Existing')
-        tag = TagFactory(project=project, name='Other')
+        TagFactory(project=project, name="Existing")
+        tag = TagFactory(project=project, name="Other")
 
         with pytest.raises(ConflictError) as exc_info:
-            services.update_tag(tag=tag, name='Existing')
+            services.update_tag(tag=tag, name="Existing")
 
-        assert 'уже существует' in str(exc_info.value)
+        assert "уже существует" in str(exc_info.value)
 
     def test_update_tag_same_name_ok(self):
-        tag = TagFactory(name='Same')
+        tag = TagFactory(name="Same")
 
-        result = services.update_tag(tag=tag, name='Same')
+        result = services.update_tag(tag=tag, name="Same")
 
-        assert result.name == 'Same'
+        assert result.name == "Same"
 
 
 @pytest.mark.django_db
@@ -152,7 +153,7 @@ class TestSetTaskTags:
         with pytest.raises(ValidationError) as exc_info:
             services.set_task_tags(task=task, tag_ids=[99999])
 
-        assert 'не найдены' in str(exc_info.value)
+        assert "не найдены" in str(exc_info.value)
 
     def test_set_task_tags_wrong_project_raises(self):
         project1 = ProjectFactory()
@@ -163,7 +164,7 @@ class TestSetTaskTags:
         with pytest.raises(ValidationError) as exc_info:
             services.set_task_tags(task=task, tag_ids=[tag.id])
 
-        assert 'не принадлежат' in str(exc_info.value)
+        assert "не принадлежат" in str(exc_info.value)
 
     def test_set_task_tags_replaces_existing(self):
         project = ProjectFactory()

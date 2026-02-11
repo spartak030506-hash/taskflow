@@ -3,6 +3,7 @@ import pytest
 from apps.projects.models import ProjectMember
 from apps.projects.tests.factories import ProjectFactory, ProjectMemberFactory
 from apps.users.tests.factories import UserFactory
+
 from .factories import TaskFactory
 
 
