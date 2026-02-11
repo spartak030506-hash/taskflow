@@ -5,7 +5,7 @@
 ### 1. Создать .env файл
 
 ```bash
-cp .env.example .env
+cp .env.production.example .env
 ```
 
 Изменить переменные для production:

@@ -9,8 +9,8 @@ TaskFlow — REST API платформа для управления проек�
 **Стек:** Python 3.12, Django 5.1, DRF 3.15, PostgreSQL 16, Redis 7, Celery 5.4, Channels 4.1, SimpleJWT
 
 **Документация:**
-- [DEVELOPMENT.md](DEVELOPMENT.md) — инструкции для разработки
-- [DEPLOYMENT.md](DEPLOYMENT.md) — инструкции для production
+- [DEVELOPMENT.md](DEVELOPMENT.md) — инструкции для разработки (использует `.env.dev.example`)
+- [DEPLOYMENT.md](DEPLOYMENT.md) — инструкции для production (использует `.env.production.example`)
 
 ## Архитектура
 

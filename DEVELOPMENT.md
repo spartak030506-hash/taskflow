@@ -3,7 +3,7 @@
 ## Быстрый старт
 
 ```bash
-cp .env.example .env.dev
+cp .env.dev.example .env.dev
 docker compose up -d
 docker compose exec web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
