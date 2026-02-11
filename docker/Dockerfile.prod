@@ -10,10 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir . && \
-    pip install --no-cache-dir .[prod]
+    pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.12-slim
 
@@ -22,17 +21,32 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Установить runtime зависимости (libpq5 вместо libpq-dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
+    libpq5 \
     netcat-traditional \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Создать non-root пользователя
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Скопировать установленные пакеты из builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+# Скопировать entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Скопировать код проекта
 COPY . .
+
+# Создать директории для static/media/logs и дать права
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    chown -R appuser:appuser /app
+
+# Переключиться на non-root пользователя
+USER appuser
 
 ENTRYPOINT ["/entrypoint.sh"]
