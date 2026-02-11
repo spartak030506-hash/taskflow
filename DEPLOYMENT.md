@@ -136,8 +136,11 @@ docker compose -f docker-compose.prod.yml up -d nginx
 ### Логи
 
 ```bash
-# Django
-docker compose -f docker-compose.prod.yml exec web tail -f /app/logs/django.log
+# Django (web)
+docker compose -f docker-compose.prod.yml logs -f web
+
+# WebSocket
+docker compose -f docker-compose.prod.yml logs -f websocket
 
 # Nginx
 docker compose -f docker-compose.prod.yml logs -f nginx
