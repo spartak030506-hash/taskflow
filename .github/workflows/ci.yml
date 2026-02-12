@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -119,3 +119,21 @@ jobs:
 
       - name: Run tests (PostgreSQL)
         run: pytest --cov=apps --cov-report=term-missing --cov-report=xml
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: [lint-black, lint-ruff, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/projects/taskflow
+            git pull --rebase
+            docker compose -f docker-compose.prod.yml up -d --build
